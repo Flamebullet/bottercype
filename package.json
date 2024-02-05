@@ -1,0 +1,18 @@
+{
+  "name": "hyperbot",
+  "version": "1.0.0",
+  "description": "twitch bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Flame",
+  "license": "ISC",
+  "dependencies": {
+    "@twurple/auth": "^7.0.8",
+    "@twurple/auth-tmi": "^7.0.8",
+    "dotenv": "^16.4.1",
+    "postgres": "^3.4.3",
+    "tmi.js": "^1.8.5"
+  }
+}

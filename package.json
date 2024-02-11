@@ -12,6 +12,7 @@
     "@twurple/auth": "^7.0.8",
     "@twurple/auth-tmi": "^7.0.8",
     "dotenv": "^16.4.1",
+    "pg-listen": "^1.7.0",
     "postgres": "^3.4.3",
     "request": "^2.88.2",
     "tmi.js": "^1.8.5",

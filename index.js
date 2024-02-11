@@ -146,7 +146,7 @@ const run = async () => {
 					// execute custom rand command
 					result = await sql`SELECT min, max, output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`;
 					if (result.length > 0) {
-						let user = message.match(/@(\w+)/)[1] ? message.match(/@(\w+)/)[1] : tags.username;
+						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : tags.username;
 						let value = Math.floor(Math.random() * (parseInt(result[0].max) - parseInt(result[0].min) + 1)) + parseInt(result[0].min);
 						console.log(user);
 						let output = await result[0].output.replace('{user}', `@${user}`).replace('{value}', value);

@@ -18,7 +18,7 @@ module.exports = {
 		let min = parseInt(message.split(' ')[2]);
 		let max = parseInt(message.split(' ')[3]);
 		let output = message.split(' ').slice(4).join(' ');
-		let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)}`;
+		let result = await sql`SELECT output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`;
 		if (client.commands.get(command) || result.length > 0) {
 			return client.say(channel, `@${tags.username}, failed to add command, command already exists.`);
 		}

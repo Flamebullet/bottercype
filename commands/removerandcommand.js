@@ -1,6 +1,6 @@
 module.exports = {
-	name: 'removecommand',
-	description: 'removes a custom command from your channel',
+	name: 'removerandcommand',
+	description: 'removes a custom rng command from your channel',
 	async execute(channel, tags, message, client, sql) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
@@ -12,11 +12,11 @@ module.exports = {
 		let channelName = channel.substring(1);
 		let command = message.split(' ')[1];
 
-		let result = await sql`SELECT * FROM commands WHERE username=${String(channelName)} AND command=${String(command)};`;
+		let result = await sql`SELECT * FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)};`;
 		if (client.commands.get(command) || result.length == 0) {
 			return client.say(channel, `@${tags.username}, failed to remove command, command does not exist.`);
 		}
-		await sql`DELETE FROM commands WHERE username=${String(channelName)} AND command=${String(command)};`;
+		await sql`DELETE FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)};`;
 
 		return client.say(channel, `@${tags.username}, command '${command}' has been removed successfully!`);
 	}

@@ -16,7 +16,7 @@ let followerchannels = {};
 
 // connecting to Tmi.js
 const client = new tmi.Client({
-	options: { debug: true },
+	options: { debug: false },
 	connection: {
 		reconnect: true,
 		secure: true
@@ -62,25 +62,21 @@ const run = async () => {
 		await subscriber.connect();
 		await subscriber.listenTo('followedchannel');
 		await subscriber.listenTo('acceptedchannel');
+		// Connecting to twitch event sub
+		const credentials = new Credentials(twitchtoken, twitchID, twitchSecret, twitchrefresh);
+		const authProvider = new AuthProvider(credentials);
+
+		const TEclient = new EventSub(authProvider);
+		TEclient.run();
+
 		(await sql`SELECT username FROM followmsg`).forEach(async (d) => {
 			if (!followerchannels[d.username]) {
 				followerchannels[d.username] = {};
 			}
 			let followmsgChannel = followerchannels[d.username];
 
-			const result = await axios({
-				method: 'get',
-				url: `https://api.twitch.tv/helix/users?login=${d.username}`,
-				headers: {
-					'Client-ID': twitchID,
-					'Authorization': `Bearer ${twitchtoken}`
-				}
-			});
-
-			const data = result.data.data;
-			if (data.length > 0) {
-				const userId = data[0].id;
-
+			const userId = (await trClient.getUser(d.username)).id;
+			if (userId) {
 				followmsgChannel.TElistener = TEclient.register('channelFollow', {
 					broadcaster_user_id: userId,
 					moderator_user_id: '1031891799'
@@ -97,23 +93,14 @@ const run = async () => {
 				});
 
 				followmsgChannel.TElistener.onError((e) => {
-					console.log(e.getResponse());
+					console.error('TElistener error', e.getResponse());
+					fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
 				});
 			} else {
 				console.log('User not found and removed from database');
 				await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
 			}
 		});
-
-		// Connecting to twitch event sub
-		const credentials = new Credentials(twitchtoken, twitchID, twitchSecret, twitchrefresh);
-		const authProvider = new AuthProvider(credentials);
-
-		// const token = await authProvider.getAppAccessToken();
-		// console.log(`Your app access token is ${token}`);
-
-		const TEclient = new EventSub(authProvider);
-		TEclient.run();
 
 		// Trigger when user created followmsg
 		subscriber.notifications.on('followmsgsetup', async (payload) => {
@@ -127,6 +114,7 @@ const run = async () => {
 				}
 			} catch (err) {
 				console.error('Error setting up follow message', err);
+				fs.appendFile('error.txt', '\n' + 'Error setting up follow message: \n' + err, () => {});
 			}
 		});
 
@@ -138,6 +126,7 @@ const run = async () => {
 				}
 			} catch (err) {
 				console.error('Error joining or disconnecting twitch channel', err);
+				fs.appendFile('error.txt', '\n' + 'Error joining or disconnecting twitch channel: \n' + err, () => {});
 			}
 		});
 
@@ -156,7 +145,13 @@ const run = async () => {
 				}
 			} catch (err) {
 				console.error('Error joining or disconnecting twitch channel', err);
+				fs.appendFile('error.txt', '\n' + 'Error joining or disconnecting twitch channel: \n' + err, () => {});
 			}
+		});
+
+		subscriber.events.on('error', (err) => {
+			console.error('fatal database error:', err);
+			fs.appendFile('error.txt', '\n' + 'fatal database error: \n' + err, () => {});
 		});
 
 		// listen to channels to go live
@@ -187,30 +182,26 @@ const run = async () => {
 				}
 				let followmsgChannel = followerchannels[d.username];
 
-				const result = await axios({
-					method: 'get',
-					url: `https://api.twitch.tv/helix/users?login=${d.username}`,
-					headers: {
-						'Client-ID': twitchID,
-						'Authorization': `Bearer ${twitchtoken}`
-					}
-				});
-
-				const data = result.data.data;
-				if (data.length > 0) {
-					const userId = data[0].id;
-
+				const userId = (await trClient.getUser(d.username)).id;
+				if (userId) {
 					followmsgChannel.TElistener = TEclient.register('channelFollow', {
 						broadcaster_user_id: userId,
 						moderator_user_id: '1031891799'
 					});
 
-					followmsgChannel.TElistener.onTrigger((data) => {
-						console.log(data);
+					followmsgChannel.TElistener.onTrigger(async (data) => {
+						let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
+
+						if (result.length > 0) {
+							await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
+						} else {
+							followmsgChannel.TElistener.unsubscribe();
+						}
 					});
 
 					followmsgChannel.TElistener.onError((e) => {
-						console.log(e.getResponse());
+						console.error('TEListener error', e.getResponse());
+						fs.appendFile('error.txt', '\n' + 'TEListener error: \n' + e.getResponse(), () => {});
 					});
 
 					client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel and connected to websocket!`);
@@ -263,7 +254,7 @@ const run = async () => {
 				if (command == 'connect') return client.say(channel, `@${tags.username}, Bot has already been added to server.`);
 
 				if (client.commands.get(command)) {
-					client.commands.get(command).execute(channel, tags, message, client, sql);
+					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels);
 				} else {
 					// execute custom command
 					let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)}`;
@@ -282,7 +273,7 @@ const run = async () => {
 				}
 			} else {
 				if (command == 'connect') {
-					client.commands.get(command).execute(channel, tags, message, client, sql);
+					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels);
 				} else if (client.commands.get(command)) {
 					client.say(
 						channel,
@@ -292,14 +283,12 @@ const run = async () => {
 			}
 		});
 		client.on('error', (err) => {
-			console.log(err);
+			console.error('client error:', err);
+			fs.appendFile('error.txt', '\n' + 'client error: \n' + err, () => {});
 		});
-
-		subscriber.events.on('error', (error) => {
-			console.error('fatal database error:', error);
-		});
-	} catch (error) {
-		console.error(error);
+	} catch (err) {
+		console.error('run() error', err);
+		fs.appendFile('error.txt', '\n' + 'run() error: \n' + err, () => {});
 	}
 };
 

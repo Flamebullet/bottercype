@@ -1,8 +1,10 @@
 # Bottercype
 
-A Twitch bot project
+A free Twitch bot to moderate and assist your Twitch moderators and community!
 
-Head over to https://yt-dl.asuscomm.com/twitch-bot/bottercype to add the bot to your twitch channel
+Head over to https://yt-dl.asuscomm.com/twitch-bot/bottercype to add the bot to your twitch channel, then perform !connect to accept the bot into the channel.
+
+Modding the bot is highly recommended to ensure bot works perfectly, features that require bot's mod permission will be highlighted.
 
 # Commands
 
@@ -35,7 +37,9 @@ Connect bot to channel
 
 ## disconnect
 
-Disconnect bot from channel
+> !UMPORTANT! Disconnecting bot will also remove all the data such as custom commands and messages. Changes cannot be undone.
+
+Disconnect bot from channel and remove all commands and messages previously added.
 
 **Usage:** `!disconnect`
 

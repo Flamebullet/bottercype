@@ -16,7 +16,7 @@ let followerchannels = {};
 
 // connecting to Tmi.js
 const client = new tmi.Client({
-	options: { debug: false },
+	options: { debug: true },
 	connection: {
 		reconnect: true,
 		secure: true
@@ -69,7 +69,7 @@ const run = async () => {
 		const TEclient = new EventSub(authProvider);
 		TEclient.run();
 
-		// (await sql`SELECT username FROM followmsg`).forEach(async (d) => {
+		// (await sql`SELECT * FROM followmsg`).forEach(async (d) => {
 		// 	if (!followerchannels[d.username]) {
 		// 		followerchannels[d.username] = {};
 		// 	}
@@ -77,22 +77,16 @@ const run = async () => {
 
 		// 	const userId = (await trClient.getUser(d.username)).id;
 		// 	if (userId) {
-		// 		followmsgChannel.TElistener = TEclient.register('channelFollow', {
+		// 		followmsgChannel.channelFollow = TEclient.register('channelFollow', {
 		// 			broadcaster_user_id: userId,
 		// 			moderator_user_id: '1031891799'
 		// 		});
 
-		// 		followmsgChannel.TElistener.onTrigger(async (data) => {
-		// 			let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
-
-		// 			if (result.length > 0) {
-		// 				await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
-		// 			} else {
-		// 				followmsgChannel.TElistener.unsubscribe();
-		// 			}
+		// 		followmsgChannel.channelFollow.onTrigger(async (data) => {
+		// 			await client.say(`#${data.broadcaster_user_login}`, d.message.replace('{user}', `@${data.user_name}`));
 		// 		});
 
-		// 		followmsgChannel.TElistener.onError((e) => {
+		// 		followmsgChannel.channelFollow.onError((e) => {
 		// 			console.error('TElistener error', e.getResponse());
 		// 			fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
 		// 		});
@@ -118,7 +112,7 @@ const run = async () => {
 			}
 		});
 
-		// Trigger when user register on website
+		// Trigger when user register on website (test channel users)
 		subscriber.notifications.on('followedchannel', async (payload) => {
 			try {
 				if (payload.status === 'INSERT') {
@@ -174,44 +168,67 @@ const run = async () => {
 
 		// connect to live channels
 		trClient.on('live', async (data) => {
+			// logging
+			fs.appendFile('error.txt', '\n' + 'live event: \n' + data.raw, () => {});
 			await client.join(data.raw.broadcaster_login);
-			let d = await sql`SELECT username FROM followmsg`;
-			if (d.length > 0) {
-				if (!followerchannels[d.username]) {
-					followerchannels[d.username] = {};
-				}
-				let followmsgChannel = followerchannels[d.username];
 
-				const userId = (await trClient.getUser(d.username)).id;
-				if (userId) {
-					followmsgChannel.TElistener = TEclient.register('channelFollow', {
-						broadcaster_user_id: userId,
-						moderator_user_id: '1031891799'
-					});
-
-					followmsgChannel.TElistener.onTrigger(async (data) => {
-						let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
-
-						if (result.length > 0) {
-							await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
-						} else {
-							followmsgChannel.TElistener.unsubscribe();
-						}
-					});
-
-					followmsgChannel.TElistener.onError((e) => {
-						console.error('TEListener error', e.getResponse());
-						fs.appendFile('error.txt', '\n' + 'TEListener error: \n' + e.getResponse(), () => {});
-					});
-
-					client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel and connected to websocket!`);
-				} else {
-					console.log('User not found and removed from database');
-					await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
-				}
-			} else {
-				client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel!`);
+			const userId = (await trClient.getUser(data.raw.broadcaster_login)).id;
+			if (!userId) {
+				console.log('User not found and removed from database');
+				await sql`DELETE FROM followmsg WHERE username=${String(data.raw.broadcaster_login)};`;
+				await sql`DELETE FROM submsg WHERE username=${String(data.raw.broadcaster_login)};`;
 			}
+
+			if (!followerchannels[data.raw.broadcaster_login]) {
+				followerchannels[data.raw.broadcaster_login] = {};
+			}
+			let followmsgChannel = followerchannels[data.raw.broadcaster_login];
+
+			const a = await sql`SELECT * FROM followmsg WHERE username=${data.raw.broadcaster_login}`;
+			if (a.length > 0) {
+				// Follow message
+				followmsgChannel.channelFollow = TEclient.register('channelFollow', {
+					broadcaster_user_id: userId,
+					moderator_user_id: '1031891799'
+				});
+
+				followmsgChannel.channelFollow.onTrigger(async (data) => {
+					await client.say(`#${data.broadcaster_user_login}`, a[0].message.replace('{user}', `@${data.user_name}`));
+				});
+
+				followmsgChannel.channelFollow.onError((e) => {
+					console.error('TEListener error', e.getResponse());
+					fs.appendFile('error.txt', '\n' + 'channelFollow error: \n' + e.getResponse(), () => {});
+				});
+			}
+
+			const b = await sql`SELECT * FROM submsg WHERE username=${data.raw.broadcaster_login}`;
+			if (b.length > 0) {
+				for (let i in b) {
+					if (b[i].type == 'sub') {
+						// Sub message
+						followmsgChannel.channelSubscribe = TEclient.register('channelSubscribe', {
+							broadcaster_user_id: userId
+						});
+
+						followmsgChannel.channelSubscribe.onTrigger(async (data) => {
+							await client.say(
+								`#${data.broadcaster_user_login}`,
+								b[i].message.replace('{user}', `@${data.user_name}`).replace('{tier}', `${String(parseInt(data.tier) / 1000)}`)
+							);
+						});
+
+						followmsgChannel.channelSubscribe.onError((e) => {
+							console.error('TEListener error', e.getResponse());
+							fs.appendFile('error.txt', '\n' + 'channelSubscribe error: \n' + e.getResponse(), () => {});
+						});
+					} else if (b[i].type == 'resub') {
+					} else if (b[i].type == 'giftsub') {
+					}
+				}
+			}
+
+			client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel!`);
 		});
 
 		// Disconnect to offline channels
@@ -231,7 +248,7 @@ const run = async () => {
 				let followmsgChannel = followerchannels[d.username];
 
 				if (data.length > 0) {
-					followmsgChannel.TElistener.unsubscribe();
+					followmsgChannel.channelFollow?.unsubscribe();
 				} else {
 					console.log('User not found and removed from database');
 					await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
@@ -254,7 +271,7 @@ const run = async () => {
 				if (command == 'connect') return client.say(channel, `@${tags.username}, Bot has already been added to server.`);
 
 				if (client.commands.get(command)) {
-					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels);
+					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient);
 				} else {
 					// execute custom command
 					let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)}`;
@@ -273,7 +290,7 @@ const run = async () => {
 				}
 			} else {
 				if (command == 'connect') {
-					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels);
+					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient);
 				} else if (client.commands.get(command)) {
 					client.say(
 						channel,

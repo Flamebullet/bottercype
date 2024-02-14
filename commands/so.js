@@ -4,19 +4,19 @@ const axios = require('axios');
 module.exports = {
 	name: 'so',
 	description: 'Shoutout another channel',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels) {
+	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
 			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to shoutout.`);
 		}
 		if (message.split(' ').length < 2) {
-			return client.say(channel, `@${tags.username}, failed to add command due to lack of input.`);
+			return;
 		}
 
 		let channelName = channel.substring(1);
 
 		// action for add remove and shouting out
-		if (message.split(' ')[1] == 'add') {
+		if (message.split(' ')[1].toLowerCase() == 'add') {
 			if (message.split(' ').length < 3) {
 				return client.say(
 					channel,
@@ -32,7 +32,7 @@ module.exports = {
 				await sql`INSERT INTO so (username, message) VALUES (${String(channelName)}, ${String(output)});`;
 				return client.say(channel, `@${tags.username}, so message added successfully!`);
 			}
-		} else if (message.split(' ')[1] == 'remove') {
+		} else if (message.split(' ')[1].toLowerCase() == 'remove') {
 			let result = await sql`SELECT * FROM so WHERE username=${String(channelName)};`;
 
 			if (result.length > 0) {

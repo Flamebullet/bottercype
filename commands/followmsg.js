@@ -3,20 +3,20 @@ const axios = require('axios');
 
 module.exports = {
 	name: 'followmsg',
-	description: 'add a custom command to your channel',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels) {
+	description: 'add a custom message to user on follow event',
+	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
 			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to add command.`);
 		}
 		if (
 			(message.split(' ')[1].toLowerCase() == 'add' && message.split(' ').length < 3) ||
-			(message.split(' ')[1].toLowerCase() != 'remove' && message.split(' ').length < 2)
+			(message.split(' ')[1].toLowerCase() == 'remove' && message.split(' ').length < 2)
 		) {
-			return client.say(channel, `@${tags.username}, failed to add command due to lack of input.`);
+			return client.say(channel, `@${tags.username}, failed to add/remove message due to lack of input.`);
 		}
 		if (message.split(' ')[1].toLowerCase() != 'add' && message.split(' ')[1].toLowerCase() != 'remove') {
-			return client.say(channel, `@${tags.username}, failed to add command, unknown action used.`);
+			return client.say(channel, `@${tags.username}, failed to add/remove message, unknown action used.`);
 		}
 		let channelName = channel.substring(1);
 		let action = message.split(' ')[1];
@@ -46,52 +46,46 @@ module.exports = {
 		let result = await sql`SELECT * FROM followmsg WHERE username=${String(channelName)};`;
 		if (result.length > 0) {
 			if (action.toLowerCase() == 'add') {
-				return client.say(channel, `@${tags.username}, failed to add follow message, it already exist.`);
+				return client.say(channel, `@${tags.username}, failed to add follow event message, it already exist.`);
 			} else if (action.toLowerCase() == 'remove') {
 				await sql`DELETE FROM followmsg WHERE username=${String(channelName)};`;
-				return client.say(channel, `@${tags.username}, follow message successfully removed.`);
+				return client.say(channel, `@${tags.username}, follow event message successfully removed.`);
 			}
 		} else {
 			if (action.toLowerCase() == 'add') {
 				await sql`INSERT INTO followmsg (username, message) VALUES (${String(channelName)}, ${String(output)});`;
 				if (await trClient.getStream(channelName)) {
-					if (!followerchannels[d.username]) {
-						followerchannels[d.username] = {};
+					if (!followerchannels[channelName]) {
+						followerchannels[channelName] = {};
 					}
-					let followmsgChannel = followerchannels[d.username];
+					let followmsgChannel = followerchannels[channelName];
 
-					const userId = (await trClient.getUser(d.username)).id;
-					if (userId) {
-						followmsgChannel.TElistener = TEclient.register('channelFollow', {
-							broadcaster_user_id: userId,
-							moderator_user_id: '1031891799'
-						});
+					followmsgChannel.channelFollow = TEclient.register('channelFollow', {
+						broadcaster_user_id: userId,
+						moderator_user_id: '1031891799'
+					});
 
-						followmsgChannel.TElistener.onTrigger(async (data) => {
-							let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
+					followmsgChannel.channelFollow.onTrigger(async (data) => {
+						let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
 
-							if (result.length > 0) {
-								await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
-							} else {
-								followmsgChannel.TElistener.unsubscribe();
-							}
-						});
+						if (result.length > 0) {
+							await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
+						} else {
+							followmsgChannel.channelFollow?.unsubscribe();
+						}
+					});
 
-						followmsgChannel.TElistener.onError((e) => {
-							console.error('TElistener error', e.getResponse());
-							fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
-						});
-					} else {
-						console.log('User not found and removed from database');
-						await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
-					}
+					followmsgChannel.channelFollow.onError((e) => {
+						console.error('TElistener error', e.getResponse());
+						fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+					});
 				}
 
-				return client.say(channel, `@${tags.username}, follow message has been added successfully!`);
+				return client.say(channel, `@${tags.username}, follow event message has been added successfully!`);
 			} else if (action.toLowerCase() == 'remove') {
 				return client.say(
 					channel,
-					`@${tags.username}, unable to remove follow message as it does not exist, use the command \`!followmsg add [message]\` to add a follow message.`
+					`@${tags.username}, unable to remove follow event message as it does not exist, use the command \`!followmsg add [message]\` to add a follow event message.`
 				);
 			}
 		}

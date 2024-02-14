@@ -1,7 +1,7 @@
 module.exports = {
 	name: 'removerandcommand',
 	description: 'removes a custom rng command from your channel',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels) {
+	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
 			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to remove command.`);

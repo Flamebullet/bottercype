@@ -12,9 +12,10 @@ Modding the bot is highly recommended to ensure bot works perfectly, features th
 -   [connect](#connect) - Connect bot to channel
 -   [disconnect](#disconnect) - Disconnect bot from channel
 -   [so](#so) - Shoutout another channel
--   [followmsg](#followmsg) - Command to add a message for when a user followed the channel(Requires mod permission)
+-   [followmsg](#followmsg) - Command to add a custom message for user follow event(Requires mod permission)
+-   [submsg](#submsg) - Command to add a custom message for subscription events
 
-# Custom commands(Require broadcaster/mod permission)
+# Custom commands
 
 -   [addcommand](#addcommand) - Add a custom command
 -   [removecommand](#removecommand) - Remove a custom command
@@ -81,7 +82,7 @@ Check out @Bottercype at https://twitch.tv/Bottercype , they were last seen play
 
 > !IMPORTANT! Bot requires mod permission to perform this action
 
-Setup a follow message for bot to repeat when a user follows your channel.
+Setup a custom message that triggers when a user follows your channel.
 
 #### To add a follow message
 
@@ -102,6 +103,33 @@ Welcome to the channel @Bottercype
 
 **Usage:**
 `!followmsg remove`
+
+## submsg
+
+> !IMPORTANT! Bot requires mod permission to perform this action
+
+Setup a subscription message that triggers when a user subscribes to your channel.
+
+#### To add a standard sub message(Does not include resub/gifted subs)
+
+**Usage:**
+`!submsg addsub [message]`
+
+Variables:
+
+-   {user} - Username of the channel getting the shoutout
+-   {tier} - Tier level of the subscription
+
+**Example:**
+`!submsg addmsg Thank you {user} for the tier {tier} sub`
+
+**Output when a user follows the channel:**
+Thank you @Bottercype for the tier 3 sub
+
+#### To remove the standard sub message
+
+**Usage:**
+`!submsg removemsg`
 
 ## addcommand
 

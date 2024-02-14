@@ -16,7 +16,7 @@ let followerchannels = {};
 
 // connecting to Tmi.js
 const client = new tmi.Client({
-	options: { debug: true },
+	options: { debug: false },
 	connection: {
 		reconnect: true,
 		secure: true

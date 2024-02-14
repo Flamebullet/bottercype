@@ -15,7 +15,7 @@ module.exports = {
 		) {
 			return client.say(channel, `@${tags.username}, failed to add/remove message due to lack of input.`);
 		}
-		if (message.split(' ')[1].toLowerCase() != 'add' && message.split(' ')[1].toLowerCase() != 'remove') {
+		if (message.split(' ')[1].toLowerCase() != 'addsub' && message.split(' ')[1].toLowerCase() != 'removesub') {
 			return client.say(channel, `@${tags.username}, failed to add/remove message, unknown action used.`);
 		}
 		let channelName = channel.substring(1);
@@ -24,15 +24,15 @@ module.exports = {
 
 		let result = await sql`SELECT * FROM submsg WHERE username=${String(channelName)};`;
 		if (result.length > 0) {
-			if (action.toLowerCase() == 'add') {
+			if (action.toLowerCase() == 'addsub') {
 				return client.say(channel, `@${tags.username}, failed to add subscriber event, it already exist.`);
-			} else if (action.toLowerCase() == 'remove') {
-				await sql`DELETE FROM submsg WHERE username=${String(channelName)};`;
+			} else if (action.toLowerCase() == 'removesub') {
+				await sql`DELETE FROM submsg WHERE username=${String(channelName)} AND type='sub';`;
 				return client.say(channel, `@${tags.username}, subscriber event successfully removed.`);
 			}
 		} else {
-			if (action.toLowerCase() == 'add') {
-				await sql`INSERT INTO submsg (username, message) VALUES (${String(channelName)}, ${String(output)});`;
+			if (action.toLowerCase() == 'addsub') {
+				await sql`INSERT INTO submsg (username, message, type) VALUES (${String(channelName)}, ${String(output)}, 'sub');`;
 
 				if (await trClient.getStream(channelName)) {
 					if (!followerchannels[channelName]) {
@@ -45,7 +45,7 @@ module.exports = {
 					});
 
 					followmsgChannel.channelSubscribe.onTrigger(async (data) => {
-						let result = await sql`SELECT message FROM submsg WHERE username=${String(data.broadcaster_user_login)}`;
+						let result = await sql`SELECT message FROM submsg WHERE username=${String(data.broadcaster_user_login)} AND type='sub';`;
 
 						if (result.length > 0) {
 							await client.say(
@@ -64,7 +64,7 @@ module.exports = {
 				}
 
 				return client.say(channel, `@${tags.username}, subscriber event has been added successfully!`);
-			} else if (action.toLowerCase() == 'remove') {
+			} else if (action.toLowerCase() == 'removesub') {
 				return client.say(
 					channel,
 					`@${tags.username}, unable to remove subscriber event as it does not exist, use the command \`!sub add [message]\` to add a subscriber event message.`

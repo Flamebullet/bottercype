@@ -42,7 +42,7 @@ Connect bot to channel
 
 ## disconnect
 
-> !UMPORTANT! Disconnecting bot will also remove all the data such as custom commands and messages. Changes cannot be undone.
+> IMPORTANT! Disconnecting bot will also remove all the data such as custom commands and messages. Changes cannot be undone.
 
 Disconnect bot from channel and remove all commands and messages previously added.
 
@@ -84,7 +84,7 @@ Check out @Bottercype at https://twitch.tv/Bottercype , they were last seen play
 
 ## followmsg
 
-> !IMPORTANT! Bot requires mod permission to perform this action
+> IMPORTANT! Bot requires mod permission to perform this action
 
 Setup a custom message that triggers when a user follows your channel.
 
@@ -110,8 +110,6 @@ Welcome to the channel @Bottercype
 
 ## submsg
 
-> !IMPORTANT! Bot requires mod permission to perform this action
-
 Setup a subscription message that triggers when a user subscribes, resubscribes or gift subscriptions to your channel.
 
 #### To add a standard sub message(Does not include resub/gifted subs)
@@ -135,6 +133,8 @@ Thank you @Bottercype for the tier 3 sub
 **Usage:**
 `!submsg removesub`
 
+---
+
 #### To add a resub message
 
 **Usage:**
@@ -156,6 +156,8 @@ Thank you @Bottercype for the 69 months of tier 3 resub
 
 **Usage:**
 `!submsg removeresub`
+
+---
 
 #### To add a gift sub message
 

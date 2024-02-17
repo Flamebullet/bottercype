@@ -202,33 +202,46 @@ const run = async () => {
 				});
 			}
 
-			const b = await sql`SELECT * FROM submsg WHERE username=${data.raw.broadcaster_login}`;
-			if (b.length > 0) {
-				for (let i in b) {
-					if (b[i].type == 'sub') {
-						// Sub message
-						followmsgChannel.channelSubscribe = TEclient.register('channelSubscribe', {
-							broadcaster_user_id: userId
-						});
-
-						followmsgChannel.channelSubscribe.onTrigger(async (data) => {
-							await client.say(
-								`#${data.broadcaster_user_login}`,
-								b[i].message.replace('{user}', `@${data.user_name}`).replace('{tier}', `${String(parseInt(data.tier) / 1000)}`)
-							);
-						});
-
-						followmsgChannel.channelSubscribe.onError((e) => {
-							console.error('TEListener error', e.getResponse());
-							fs.appendFile('error.txt', '\n' + 'channelSubscribe error: \n' + e.getResponse(), () => {});
-						});
-					} else if (b[i].type == 'resub') {
-					} else if (b[i].type == 'giftsub') {
-					}
-				}
-			}
-
 			client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel!`);
+		});
+
+		client.on('subscription', async (channel, username, methods, message, userstate) => {
+			console.log(channel, username, methods, message, userstate);
+			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='sub'`;
+			if (result.length > 0) {
+				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
+				await client.say(channel, result.message.replace('{user}', `@${username}`).replace('{tier}', `${String(tier)}`));
+			}
+		});
+
+		client.on('resub', async (channel, username, months, message, userstate, methods) => {
+			console.log(channel, username, ~~userstate[msg - param - cumulative - months], message, userstate, methods);
+			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='resub'`;
+			if (result.length > 0) {
+				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
+				await client.say(
+					channel,
+					result.message
+						.replace('{user}', `@${username}`)
+						.replace('{tier}', `${String(tier)}`)
+						.replace('{duration}', `${~~userstate['msg-param-cumulative-months']} months`)
+				);
+			}
+		});
+
+		client.on('submysterygift', async (channel, username, numbOfSubs, methods, userstate) => {
+			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='giftsub'`;
+			if (result.length > 0) {
+				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
+				await client.say(
+					channel,
+					result.message
+						.replace('{user}', `@${username}`)
+						.replace('{subcount}', String(numbOfSubs))
+						.replace('{tier}', `${String(tier)}`)
+						.replace('{totalcount}', ~~userstate['msg-param-sender-count'])
+				);
+			}
 		});
 
 		// Disconnect to offline channels

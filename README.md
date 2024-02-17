@@ -4,18 +4,22 @@ A free Twitch bot to moderate and assist your Twitch moderators and community!
 
 Head over to https://yt-dl.asuscomm.com/twitch-bot/bottercype to add the bot to your twitch channel, then perform !connect to accept the bot into the channel.
 
-Modding the bot is highly recommended to ensure bot works perfectly, features that require bot's mod permission will be highlighted.
+Modding the bot is highly recommended to ensure bot works perfectly, features that require bot's mod permission includes:
+
+-   followmsg - Bot requires mod permission to listen to `Follow` event due to Twitch's new api changes
 
 # Commands
 
 -   [hello](#hello) - Test command
--   [connect](#connect) - Connect bot to channel
--   [disconnect](#disconnect) - Disconnect bot from channel
--   [so](#so) - Shoutout another channel
--   [followmsg](#followmsg) - Command to add a custom message for user follow event(Requires mod permission)
--   [submsg](#submsg) - Command to add a custom message for subscription events
+-   [connect](#connect) - Connect bot to channel **(Requires mod permission)**
+-   [disconnect](#disconnect) - Disconnect bot from channel **(Requires mod permission)**
+-   [so](#so) - Shoutout another channel **(Requires mod permission)**
+-   [followmsg](#followmsg) - Command to add a custom message for user follow event **(Requires mod permission)** **(Bot Requires Mod permission)**
+-   [submsg](#submsg) - Command to add a custom message for subscription events **(Requires mod permission)**
 
 # Custom commands
+
+**Adding and removing custom commands require mod permission, using the custom command does not require mod**
 
 -   [addcommand](#addcommand) - Add a custom command
 -   [removecommand](#removecommand) - Remove a custom command
@@ -76,7 +80,7 @@ Check out @Bottercype at https://twitch.tv/Bottercype , they were last seen play
 **Usage:**
 `!so @[user]` OR `!so [user]`
 **Example:**
-`!so @Bottercype` OR `!so bottecype`
+`!so @Bottercype` OR `!so bottercype`
 
 ## followmsg
 
@@ -108,7 +112,7 @@ Welcome to the channel @Bottercype
 
 > !IMPORTANT! Bot requires mod permission to perform this action
 
-Setup a subscription message that triggers when a user subscribes to your channel.
+Setup a subscription message that triggers when a user subscribes, resubscribes or gift subscriptions to your channel.
 
 #### To add a standard sub message(Does not include resub/gifted subs)
 
@@ -117,19 +121,64 @@ Setup a subscription message that triggers when a user subscribes to your channe
 
 Variables:
 
--   {user} - Username of the channel getting the shoutout
+-   {user} - Username of the subscriber
 -   {tier} - Tier level of the subscription
 
 **Example:**
 `!submsg addmsg Thank you {user} for the tier {tier} sub`
 
-**Output when a user follows the channel:**
+**Output when a user subscribes the channel:**
 Thank you @Bottercype for the tier 3 sub
 
 #### To remove the standard sub message
 
 **Usage:**
-`!submsg removemsg`
+`!submsg removesub`
+
+#### To add a resub message
+
+**Usage:**
+`!submsg addresub [message]`
+
+Variables:
+
+-   {user} - Username of the subscriber
+-   {duration} - Duration of subscription
+-   {tier} - Tier level of the subscription
+
+**Example:**
+`!submsg addresub Thank you {user} for the {duration} of {tier} resub`
+
+**Output when a user resubs the channel:**
+Thank you @Bottercype for the 69 months of tier 3 resub
+
+#### To remove the resub message
+
+**Usage:**
+`!submsg removeresub`
+
+#### To add a gift sub message
+
+**Usage:**
+`!submsg addgiftsub [message]`
+
+Variables:
+
+-   {user} - Username of the sub gifter
+-   {subcount} - Number of subs given
+-   {tier} - Tier level of the subscription
+-   {totalcount} - Total subs given in the channel
+
+**Example:**
+`!submsg addgiftsub Thank you {user} for the {subcount} {tier} gifted subs, they have given a total of {totalcount} subs to the community!`
+
+**Output when a user gift 69 subs to the channel:**
+Thank you @Bottercype for the 69 tier 1 gifted subs, they have given a total of 420 subs to the community!
+
+#### To remove the gift sub message
+
+**Usage:**
+`!submsg removegiftsub`
 
 ## addcommand
 

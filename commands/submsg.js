@@ -15,59 +15,39 @@ module.exports = {
 		) {
 			return client.say(channel, `@${tags.username}, failed to add/remove message due to lack of input.`);
 		}
-		if (message.split(' ')[1].toLowerCase() != 'addsub' && message.split(' ')[1].toLowerCase() != 'removesub') {
+
+		let channelName = channel.substring(1);
+		let action = message.split(' ')[1].toLowerCase();
+		let output = message.split(' ').slice(2).join(' ');
+		let type;
+
+		if (action == 'addsub' || action == 'removesub') {
+			type = 'sub';
+		} else if (action == 'addresub' || action == 'removeresub') {
+			type = 'resub';
+		} else if (action == 'addgiftsub' || action == 'removegiftsub') {
+			type = 'giftsub';
+		} else {
 			return client.say(channel, `@${tags.username}, failed to add/remove message, unknown action used.`);
 		}
-		let channelName = channel.substring(1);
-		let action = message.split(' ')[1];
-		let output = message.split(' ').slice(2).join(' ');
 
-		let result = await sql`SELECT * FROM submsg WHERE username=${String(channelName)};`;
+		let result = await sql`SELECT * FROM submsg WHERE username=${String(channelName)} AND type=${String(type)};`;
 		if (result.length > 0) {
-			if (action.toLowerCase() == 'addsub') {
+			if (action.toLowerCase() == 'addsub' || action.toLowerCase() == 'addresub' || action.toLowerCase() == 'addgiftsub') {
 				return client.say(channel, `@${tags.username}, failed to add subscriber event, it already exist.`);
-			} else if (action.toLowerCase() == 'removesub') {
-				await sql`DELETE FROM submsg WHERE username=${String(channelName)} AND type='sub';`;
+			} else if (action.toLowerCase() == 'removesub' || action.toLowerCase() == 'removeresub' || action.toLowerCase() == 'removegiftsub') {
+				await sql`DELETE FROM submsg WHERE username=${String(channelName)} AND type=${String(type)};`;
 				return client.say(channel, `@${tags.username}, subscriber event successfully removed.`);
 			}
 		} else {
-			if (action.toLowerCase() == 'addsub') {
-				await sql`INSERT INTO submsg (username, message, type) VALUES (${String(channelName)}, ${String(output)}, 'sub');`;
-
-				if (await trClient.getStream(channelName)) {
-					if (!followerchannels[channelName]) {
-						followerchannels[channelName] = {};
-					}
-					let followmsgChannel = followerchannels[channelName];
-
-					followmsgChannel.channelSubscribe = TEclient.register('channelSubscribe', {
-						broadcaster_user_id: userId
-					});
-
-					followmsgChannel.channelSubscribe.onTrigger(async (data) => {
-						let result = await sql`SELECT message FROM submsg WHERE username=${String(data.broadcaster_user_login)} AND type='sub';`;
-
-						if (result.length > 0) {
-							await client.say(
-								`#${data.broadcaster_user_login}`,
-								result[0].message.replace('{user}', `@${data.user_name}`).replace('{tier}', `${String(parseInt(data.tier) / 1000)}`)
-							);
-						} else {
-							followmsgChannel.channelSubscribe.unsubscribe();
-						}
-					});
-
-					followmsgChannel.channelSubscribe.onError((e) => {
-						console.error('TEListener error', e.getResponse());
-						fs.appendFile('error.txt', '\n' + 'channelSubscribe error: \n' + e.getResponse(), () => {});
-					});
-				}
+			if (action.toLowerCase() == 'addsub' || action.toLowerCase() == 'addresub' || action.toLowerCase() == 'addgiftsub') {
+				await sql`INSERT INTO submsg (username, message, type) VALUES (${String(channelName)}, ${String(output)}, ${String(type)});`;
 
 				return client.say(channel, `@${tags.username}, subscriber event has been added successfully!`);
-			} else if (action.toLowerCase() == 'removesub') {
+			} else if (action.toLowerCase() == 'removesub' || action.toLowerCase() == 'removeresub' || action.toLowerCase() == 'removegiftsub') {
 				return client.say(
 					channel,
-					`@${tags.username}, unable to remove subscriber event as it does not exist, use the command \`!sub add [message]\` to add a subscriber event message.`
+					`@${tags.username}, unable to remove subscriber event as it does not exist, use the command \`!sub addsub|addresub|addgiftsub [message]\` to add a subscriber event message.`
 				);
 			}
 		}

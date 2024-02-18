@@ -1,7 +1,7 @@
 module.exports = {
 	name: 'connect',
 	description: 'Connect bot to channel',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
+	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		if ((tags.badges && tags.badges.broadcaster == '1') || tags.mod) {
 			let channelName = channel.substring(1);
 			await sql`DELETE FROM testchannels WHERE username=${String(channelName)};`;

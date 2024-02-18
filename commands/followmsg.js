@@ -4,7 +4,7 @@ const axios = require('axios');
 module.exports = {
 	name: 'followmsg',
 	description: 'add a custom message to send in channel on follow event',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
+	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
 			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to add command.`);
@@ -49,39 +49,13 @@ module.exports = {
 				return client.say(channel, `@${tags.username}, failed to add follow event message, it already exist.`);
 			} else if (action.toLowerCase() == 'remove') {
 				await sql`DELETE FROM followmsg WHERE username=${String(channelName)};`;
-				return client.say(channel, `@${tags.username}, follow event message successfully removed.`);
+				return;
 			}
 		} else {
 			if (action.toLowerCase() == 'add') {
 				await sql`INSERT INTO followmsg (username, message) VALUES (${String(channelName)}, ${String(output)});`;
-				if (await trClient.getStream(channelName)) {
-					if (!followerchannels[channelName]) {
-						followerchannels[channelName] = {};
-					}
-					let followmsgChannel = followerchannels[channelName];
 
-					followmsgChannel.channelFollow = TEclient.register('channelFollow', {
-						broadcaster_user_id: userId,
-						moderator_user_id: '1031891799'
-					});
-
-					followmsgChannel.channelFollow.onTrigger(async (data) => {
-						let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
-
-						if (result.length > 0) {
-							await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
-						} else {
-							followmsgChannel.channelFollow?.unsubscribe();
-						}
-					});
-
-					followmsgChannel.channelFollow.onError((e) => {
-						console.error('TElistener error', e.getResponse());
-						fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
-					});
-				}
-
-				return client.say(channel, `@${tags.username}, follow event message has been added successfully!`);
+				return;
 			} else if (action.toLowerCase() == 'remove') {
 				return client.say(
 					channel,

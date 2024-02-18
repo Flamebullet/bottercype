@@ -1,7 +1,7 @@
 module.exports = {
 	name: 'bitmsg',
 	description: 'add custom message to send to channel on cheer event',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
+	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
 			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to add subscriber event message.`);

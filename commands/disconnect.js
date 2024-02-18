@@ -1,7 +1,7 @@
 module.exports = {
 	name: 'disconnect',
 	description: 'Disconnect bot from channel',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
+	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		if ((tags.badges && tags.badges.broadcaster == '1') || tags.mod) {
 			let channelName = channel.substring(1);
 			(await sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';`).forEach(async (result) => {

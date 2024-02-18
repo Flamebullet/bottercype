@@ -4,7 +4,7 @@ const axios = require('axios');
 module.exports = {
 	name: 'so',
 	description: 'Shoutout another channel',
-	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
+	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
 			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to shoutout.`);
@@ -45,9 +45,18 @@ module.exports = {
 			let result = await sql`SELECT * FROM so WHERE username=${String(channelName)};`;
 			const user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : message.split(' ')[1];
 
-			const userInfo = await trClient.getUser(user);
+			const userInfo = await axios({
+				method: 'get',
+				url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
+				headers: {
+					'Client-ID': twitchID,
+					'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+				}
+			});
 
-			if (!userInfo) return client.say(channel, `@${tags.username}, user \`${user}\` not found`);
+			let userId = userInfo.data.data[0].id;
+
+			if (!userId) return client.say(channel, `@${tags.username}, user \`${user}\` not found`);
 
 			if (result.length == 0) {
 				return client.say(
@@ -62,7 +71,7 @@ module.exports = {
 						'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 					},
 					params: {
-						user_id: userInfo.id,
+						user_id: userId,
 						first: 1
 					}
 				})

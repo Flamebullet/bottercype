@@ -61,6 +61,7 @@ const run = async () => {
 		await client.connect();
 		await subscriber.connect();
 		await subscriber.listenTo('followedchannel');
+		await subscriber.listenTo('followmsgsetup');
 		await subscriber.listenTo('acceptedchannel');
 		// Connecting to twitch event sub
 		const credentials = new Credentials(twitchtoken, twitchID, twitchSecret, twitchrefresh);
@@ -69,32 +70,116 @@ const run = async () => {
 		const TEclient = new EventSub(authProvider);
 		TEclient.run();
 
-		// (await sql`SELECT * FROM followmsg`).forEach(async (d) => {
-		// 	if (!followerchannels[d.username]) {
-		// 		followerchannels[d.username] = {};
-		// 	}
-		// 	let followmsgChannel = followerchannels[d.username];
+		// listen to channels to go live
+		await sql`SELECT DISTINCT username FROM channels;`.then(async (results) => {
+			let toAdd = [];
+			for (let i = 0; i < results.length; i++) {
+				if (!followerchannels[results[i].username]) {
+					followerchannels[results[i].username] = {};
+				}
+				acceptedChannels.push(results[i].username);
+				toAdd.push(results[i].username);
+				await client.join(results[i].username);
+			}
 
-		// 	const userId = (await trClient.getUser(d.username)).id;
-		// 	if (userId) {
-		// 		followmsgChannel.channelFollow = TEclient.register('channelFollow', {
-		// 			broadcaster_user_id: userId,
-		// 			moderator_user_id: '1031891799'
-		// 		});
+			while (toAdd.length > 0) {
+				let params = '';
+				let chunk = toAdd.splice(0, Math.min(100, toAdd.length));
 
-		// 		followmsgChannel.channelFollow.onTrigger(async (data) => {
-		// 			await client.say(`#${data.broadcaster_user_login}`, d.message.replace('{user}', `@${data.user_name}`));
-		// 		});
+				// Add each item to the string
+				for (let item of chunk) {
+					params += `login=${item}&`;
+				}
 
-		// 		followmsgChannel.channelFollow.onError((e) => {
-		// 			console.error('TElistener error', e.getResponse());
-		// 			fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
-		// 		});
-		// 	} else {
-		// 		console.log('User not found and removed from database');
-		// 		await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
-		// 	}
-		// });
+				// Remove the trailing '&'
+				params = params.slice(0, -1);
+
+				const result = await axios({
+					method: 'get',
+					url: `https://api.twitch.tv/helix/users?${params}`,
+					headers: {
+						'Client-ID': twitchID,
+						'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+					}
+				});
+
+				result.data.data.forEach(async (data) => {
+					let followChannel = followerchannels[data.login];
+					let currentlyLive = await axios({
+						method: 'get',
+						url: `https://api.twitch.tv/helix/streams?user_id${data.id}&type=live`,
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+						}
+					});
+
+					if (currentlyLive.data.data.length != 0) {
+						client.say(
+							`#${currentlyLive.data.data[0].user_login}`,
+							`@${currentlyLive.data.data[0].user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+						);
+					}
+
+					followChannel.streamOnline = TEclient.register('streamOnline', {
+						broadcaster_user_id: String(data.id)
+					});
+
+					followChannel.streamOnline.onTrigger(async (data) => {
+						let currentlyLive = await axios({
+							method: 'get',
+							url: `https://api.twitch.tv/helix/streams?user_id${data.broadcaster_user_id}&type=live`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+							}
+						});
+
+						client.say(
+							`#${data.broadcaster_user_login}`,
+							`@${data.broadcaster_user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+						);
+					});
+
+					followChannel.streamOnline.onError((e) => {
+						console.error('TElistener error', e.getResponse());
+						fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+					});
+				});
+			}
+		});
+
+		// connect to test channels regardless of live status
+		(await sql`SELECT DISTINCT username FROM testchannels;`).forEach(async (result) => {
+			await client.join(result.username);
+		});
+
+		(await sql`SELECT * FROM followmsg`).forEach(async (d) => {
+			if (!followerchannels[d.username]) {
+				followerchannels[d.username] = {};
+			}
+			let followChannel = followerchannels[d.username];
+
+			const userId = (await trClient.getUser(d.username)).id;
+			if (userId) {
+				followChannel.channelFollow = TEclient.register('channelFollow', {
+					broadcaster_user_id: userId,
+					moderator_user_id: '1031891799'
+				});
+
+				followChannel.channelFollow.onTrigger(async (data) => {
+					await client.say(`#${data.broadcaster_user_login}`, d.message.replace('{user}', `@${data.user_name}`));
+				});
+
+				followChannel.channelFollow.onError((e) => {
+					console.error('TElistener error', e.getResponse());
+					fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+				});
+			} else {
+				console.log('User not found and removed from database');
+				await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
+			}
+		});
 
 		// Trigger when user created followmsg
 		subscriber.notifications.on('followmsgsetup', async (payload) => {
@@ -103,8 +188,44 @@ const run = async () => {
 					if (!followerchannels[payload.username]) {
 						followerchannels[payload.username] = {};
 					}
+					let followChannel = followerchannels[payload.username];
+
+					const result = await axios({
+						method: 'get',
+						url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+						}
+					});
+
+					let userId = result.data.data[0].id;
+
+					followChannel.channelFollow = TEclient.register('channelFollow', {
+						broadcaster_user_id: userId,
+						moderator_user_id: '1031891799'
+					});
+
+					followChannel.channelFollow.onTrigger(async (data) => {
+						let result = await sql`SELECT message FROM followmsg WHERE username=${String(data.broadcaster_user_login)}`;
+
+						if (result.length > 0) {
+							await client.say(`#${data.broadcaster_user_login}`, result[0].message.replace('{user}', `@${data.user_name}`));
+						} else {
+							followChannel.channelFollow?.unsubscribe();
+						}
+					});
+
+					followChannel.channelFollow.onError((e) => {
+						console.error('TElistener error', e.getResponse());
+						fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+					});
+
+					client.say(`#${payload.username}`, `@${payload.username}, follow event message has been added successfully!`);
 				} else {
-					followerchannels[payload.username] = {};
+					let followChannel = followerchannels[payload.username];
+					followChannel.channelFollow?.unsubscribe();
+					client.say(`#${payload.username}`, `@${payload.username}, follow event message successfully removed.`);
 				}
 			} catch (err) {
 				console.error('Error setting up follow message', err);
@@ -128,10 +249,67 @@ const run = async () => {
 		subscriber.notifications.on('acceptedchannel', async (payload) => {
 			try {
 				if (payload.status === 'INSERT') {
-					trClient.addChannel(payload.username);
+					if (!followerchannels[payload.username]) {
+						followerchannels[payload.username] = {};
+					}
+					let followChannel = followerchannels[payload.username];
+
+					const result = await axios({
+						method: 'get',
+						url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+						}
+					});
+
+					result.data.data.forEach(async (data) => {
+						let currentlyLive = await axios({
+							method: 'get',
+							url: `https://api.twitch.tv/helix/streams?user_id${data.id}&type=live`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+							}
+						});
+
+						if (currentlyLive.data.data.length != 0) {
+							client.say(
+								`#${currentlyLive.data.data[0].user_login}`,
+								`@${currentlyLive.data.data[0].user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							);
+						}
+
+						followChannel.streamOnline = TEclient.register('streamOnline', {
+							broadcaster_user_id: String(data.id)
+						});
+
+						followChannel.streamOnline.onTrigger(async (data) => {
+							let currentlyLive = await axios({
+								method: 'get',
+								url: `https://api.twitch.tv/helix/streams?user_id${data.broadcaster_user_id}&type=live`,
+								headers: {
+									'Client-ID': twitchID,
+									'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+								}
+							});
+
+							client.say(
+								`#${data.broadcaster_user_login}`,
+								`@${data.broadcaster_user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							);
+						});
+
+						followChannel.streamOnline.onError((e) => {
+							console.error('TElistener error', e.getResponse());
+							fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+						});
+					});
+
 					acceptedChannels.push(payload.username);
 				} else if (payload.status === 'DELETE') {
-					trClient.removeChannel(payload.username);
+					let followChannel = followerchannels[payload.username];
+					followChannel?.streamOnline?.unsubscribe();
 					acceptedChannels.splice(acceptedChannels.indexOf(payload.username), 1);
 
 					client.say(`#${payload.username}`, `@${payload.username}, Bottercype has left your channel successfully!`);
@@ -148,90 +326,7 @@ const run = async () => {
 			fs.appendFile('error.txt', '\n' + 'fatal database error: \n' + err, () => {});
 		});
 
-		// listen to channels to go live
-		(await sql`SELECT DISTINCT username FROM channels;`).forEach(async (result) => {
-			const userData = await trClient.getUser(result.username);
-
-			if (!userData) {
-				await sql`DELETE FROM channels WHERE username=${String(result.username)};`;
-				return;
-			}
-			trClient.addChannel(result.username);
-			acceptedChannels.push(result.username);
-		});
-
-		// connect to test channels regardless of live status
-		(await sql`SELECT DISTINCT username FROM testchannels;`).forEach(async (result) => {
-			await client.join(result.username);
-			await wait(3000);
-		});
-
-		// connect to live channels
-		trClient.on('live', async (data) => {
-			// logging
-			fs.appendFile('error.txt', '\n' + 'live event: \n' + data.raw, () => {});
-			await client.join(data.raw.broadcaster_login);
-
-			const userId = (await trClient.getUser(data.raw.broadcaster_login)).id;
-			if (!userId) {
-				console.log('User not found and removed from database');
-				await sql`DELETE FROM followmsg WHERE username=${String(data.raw.broadcaster_login)};`;
-				await sql`DELETE FROM submsg WHERE username=${String(data.raw.broadcaster_login)};`;
-			}
-
-			if (!followerchannels[data.raw.broadcaster_login]) {
-				followerchannels[data.raw.broadcaster_login] = {};
-			}
-			let followmsgChannel = followerchannels[data.raw.broadcaster_login];
-
-			const a = await sql`SELECT * FROM followmsg WHERE username=${data.raw.broadcaster_login}`;
-			if (a.length > 0) {
-				// Follow message
-				followmsgChannel.channelFollow = TEclient.register('channelFollow', {
-					broadcaster_user_id: userId,
-					moderator_user_id: '1031891799'
-				});
-
-				followmsgChannel.channelFollow.onTrigger(async (data) => {
-					await client.say(`#${data.broadcaster_user_login}`, a[0].message.replace('{user}', `@${data.user_name}`));
-				});
-
-				followmsgChannel.channelFollow.onError((e) => {
-					console.error('TEListener error', e.getResponse());
-					fs.appendFile('error.txt', '\n' + 'channelFollow error: \n' + e.getResponse(), () => {});
-				});
-			}
-
-			client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel!`);
-		});
-
-		// Disconnect to offline channels
-		trClient.on('unlive', async (data) => {
-			await client.part(data.raw.broadcaster_login);
-
-			let inTest = await sql`SELECT username FROM testchannels;`;
-			if (inTest.length > 0) {
-				await sql`DELETE FROM testchannels WHERE username=${String(data.raw.broadcaster_login)};`;
-			}
-
-			let d = await sql`SELECT username FROM followmsg`;
-			if (d.length > 0) {
-				if (!followerchannels[d.username]) {
-					followerchannels[d.username] = {};
-				}
-				let followmsgChannel = followerchannels[d.username];
-
-				if (data.length > 0) {
-					followmsgChannel.channelFollow?.unsubscribe();
-				} else {
-					console.log('User not found and removed from database');
-					await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
-				}
-			}
-		});
-
 		client.on('subscription', async (channel, username, methods, message, userstate) => {
-			console.log(channel, username, methods, message, userstate);
 			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='sub'`;
 			if (result.length > 0) {
 				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
@@ -240,7 +335,6 @@ const run = async () => {
 		});
 
 		client.on('resub', async (channel, username, months, message, userstate, methods) => {
-			console.log(channel, username, ~~userstate[msg - param - cumulative - months], message, userstate, methods);
 			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='resub'`;
 			if (result.length > 0) {
 				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
@@ -291,7 +385,7 @@ const run = async () => {
 				if (command == 'connect') return client.say(channel, `@${tags.username}, Bot has already been added to server.`);
 
 				if (client.commands.get(command)) {
-					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient);
+					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient);
 				} else {
 					// execute custom command
 					let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)}`;
@@ -304,7 +398,6 @@ const run = async () => {
 					// execute custom rand command
 					result = await sql`SELECT min, max, output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`;
 					if (result.length > 0) {
-						console.log(args);
 						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : args.length > 1 ? args[1] : tags.username;
 						let value = Math.floor(Math.random() * (parseInt(result[0].max) - parseInt(result[0].min) + 1)) + parseInt(result[0].min);
 						let output = await result[0].output.replace('{user}', `@${user}`).replace('{value}', value);
@@ -313,7 +406,7 @@ const run = async () => {
 				}
 			} else {
 				if (command == 'connect') {
-					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient);
+					client.commands.get(command).execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient);
 				} else if (client.commands.get(command)) {
 					client.say(
 						channel,

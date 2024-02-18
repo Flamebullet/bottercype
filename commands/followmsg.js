@@ -3,7 +3,7 @@ const axios = require('axios');
 
 module.exports = {
 	name: 'followmsg',
-	description: 'add a custom message to user on follow event',
+	description: 'add a custom message to send in channel on follow event',
 	async execute(channel, tags, message, client, sql, authProvider, trClient, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {

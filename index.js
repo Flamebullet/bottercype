@@ -205,6 +205,31 @@ const run = async () => {
 			client.say(`#${data.raw.broadcaster_login}`, `Bottercype has joined the channel!`);
 		});
 
+		// Disconnect to offline channels
+		trClient.on('unlive', async (data) => {
+			await client.part(data.raw.broadcaster_login);
+
+			let inTest = await sql`SELECT username FROM testchannels;`;
+			if (inTest.length > 0) {
+				await sql`DELETE FROM testchannels WHERE username=${String(data.raw.broadcaster_login)};`;
+			}
+
+			let d = await sql`SELECT username FROM followmsg`;
+			if (d.length > 0) {
+				if (!followerchannels[d.username]) {
+					followerchannels[d.username] = {};
+				}
+				let followmsgChannel = followerchannels[d.username];
+
+				if (data.length > 0) {
+					followmsgChannel.channelFollow?.unsubscribe();
+				} else {
+					console.log('User not found and removed from database');
+					await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
+				}
+			}
+		});
+
 		client.on('subscription', async (channel, username, methods, message, userstate) => {
 			console.log(channel, username, methods, message, userstate);
 			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='sub'`;
@@ -244,28 +269,10 @@ const run = async () => {
 			}
 		});
 
-		// Disconnect to offline channels
-		trClient.on('unlive', async (data) => {
-			await client.part(data.raw.broadcaster_login);
-
-			let inTest = await sql`SELECT username FROM testchannels;`;
-			if (inTest.length > 0) {
-				await sql`DELETE FROM testchannels WHERE username=${String(data.raw.broadcaster_login)};`;
-			}
-
-			let d = await sql`SELECT username FROM followmsg`;
-			if (d.length > 0) {
-				if (!followerchannels[d.username]) {
-					followerchannels[d.username] = {};
-				}
-				let followmsgChannel = followerchannels[d.username];
-
-				if (data.length > 0) {
-					followmsgChannel.channelFollow?.unsubscribe();
-				} else {
-					console.log('User not found and removed from database');
-					await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
-				}
+		client.on('cheer', async (channel, userstate, message) => {
+			const result = await sql`SELECT * FROM bitmsg WHERE username=${channel.substring(1)}`;
+			if (result.length > 0) {
+				await client.say(channel, result.message.replace('{user}', `@${userstate['display-name']}`).replace('{bits}', userstate.bits));
 			}
 		});
 
@@ -289,13 +296,16 @@ const run = async () => {
 					// execute custom command
 					let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)}`;
 					if (result.length > 0) {
-						client.say(channel, result[0].output);
+						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : args.length > 1 ? args[1] : tags.username;
+						let output = await result[0].output.replace('{user}', `@${user}`);
+						client.say(channel, output);
 					}
 
 					// execute custom rand command
 					result = await sql`SELECT min, max, output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`;
 					if (result.length > 0) {
-						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : tags.username;
+						console.log(args);
+						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : args.length > 1 ? args[1] : tags.username;
 						let value = Math.floor(Math.random() * (parseInt(result[0].max) - parseInt(result[0].min) + 1)) + parseInt(result[0].min);
 						let output = await result[0].output.replace('{user}', `@${user}`).replace('{value}', value);
 						client.say(channel, output);

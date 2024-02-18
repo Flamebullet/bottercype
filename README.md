@@ -182,6 +182,31 @@ Thank you @Bottercype for the 69 tier 1 gifted subs, they have given a total of 
 **Usage:**
 `!submsg removegiftsub`
 
+## bitmsg
+
+Setup a custom message that triggers when a user sends bits your channel.
+
+#### To add a bit message
+
+**Usage:**
+`!bitmsg add [message]`
+
+Variables:
+
+-   {user} - Username of the channel getting the shoutout
+-   {bits} - Amount of bits cheered
+
+**Example:**
+`!bitmsg add Thank you {user} for the {bits}bits`
+
+**Output when a user cheer 100bits to the channel:**
+Thank you @Bottercype for the 100bits
+
+#### To remove the bit message
+
+**Usage:**
+`!bitmsg remove`
+
 ## addcommand
 
 Add a custom command to your channel. Common use case include plugging in socials with `!socials`.
@@ -199,6 +224,10 @@ Removes a custom command aded via `!addcommand` from channel.
 
 **Usage:** `!removecommand [command]`
 
+Variables:
+
+-   {user} - username of the user or mentioned user
+
 **Example:**
 `!removecommand socials`
 
@@ -211,8 +240,8 @@ Add a custom command that contains a randomly generated number to your channel.
 
 Variables:
 
-{user} - username of the user or mentioned user
-{value} - a randomly generated number
+-   {user} - username of the user or mentioned user
+-   {value} - a randomly generated number
 
 **Example:**
 `!addrandcommand cute 0 200 {user} is {value}% cute!`

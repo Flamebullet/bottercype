@@ -13,10 +13,13 @@ module.exports = {
 		let command = message.split(' ')[1];
 		let output = message.split(' ').slice(2).join(' ');
 
+		// check if command already exists
 		let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)};`;
+		result = result.concat(await sql`SELECT output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`);
 		if (client.commands.get(command) || result.length > 0) {
-			return client.say(channel, `@${tags.username}, failed to add command, command already exist.`);
+			return client.say(channel, `@${tags.username}, failed to add command, command already exist in command or randcommand.`);
 		}
+
 		await sql`INSERT INTO commands (username, command, output) VALUES (${String(channelName)}, ${String(command)}, ${String(output)});`;
 
 		return client.say(channel, `@${tags.username}, new command '${command}' has been added successfully!`);

@@ -209,14 +209,18 @@ Thank you @Bottercype for the 100bits
 
 ## addcommand
 
-Add a custom command to your channel. Common use case include plugging in socials with `!socials`.
+Add a custom command to your channel. Common use case include plugging in socials with `!socials` or `!lurk`.
 
 **Usage:** `!addcommand [command] [message]`
 
+Variables:
+
+-   {user} - username of the user or mentioned user
+
 **Example:**
-`!addcommand socials Join my Discord here! https://discord.com`
-**Output when using !socials:**
-Join my Discord here! https://discord.com
+`!addcommand lurk {user} has gone into hiding!`
+**Output when using !lurk:**
+@Bottercype has gone into hiding!
 
 ## removecommand
 
@@ -224,12 +228,8 @@ Removes a custom command aded via `!addcommand` from channel.
 
 **Usage:** `!removecommand [command]`
 
-Variables:
-
--   {user} - username of the user or mentioned user
-
 **Example:**
-`!removecommand socials`
+`!removecommand lurk`
 
 ## addrandcommand
 

@@ -1,7 +1,6 @@
 const fs = require('fs');
 const tmi = require('tmi.js');
 const postgres = require('postgres');
-const { TRClient } = require('./twitchrequest/twitchrequest.js');
 const prefix = '!';
 const createSubscriber = require('pg-listen');
 const { EventSub } = require('@twapi/eventsub');
@@ -43,18 +42,6 @@ const sql = postgres(databaseUrl, {
 	idle_timeout: 5
 });
 const subscriber = createSubscriber({ connectionString: databaseUrl });
-
-// Connecting to twitch channel listener
-const options = {
-	// The channels you are listening to (all in lowercase)
-	channels: [],
-	client_id: twitchID,
-	client_secret: twitchSecret,
-
-	// The interval it will check (in seconds)
-	interval: 10
-};
-const trClient = new TRClient(options);
 
 const run = async () => {
 	try {
@@ -160,7 +147,17 @@ const run = async () => {
 			}
 			let followChannel = followerchannels[d.username];
 
-			const userId = (await trClient.getUser(d.username)).id;
+			const userInfo = await axios({
+				method: 'get',
+				url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
+				headers: {
+					'Client-ID': twitchID,
+					'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+				}
+			});
+
+			let userId = userInfo.data.data[0].id;
+
 			if (userId) {
 				followChannel.channelFollow = TEclient.register('channelFollow', {
 					broadcaster_user_id: userId,

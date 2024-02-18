@@ -16,6 +16,7 @@ Modding the bot is highly recommended to ensure bot works perfectly, features th
 -   [so](#so) - Shoutout another channel **(Requires mod permission)**
 -   [followmsg](#followmsg) - Command to add a custom message for user follow event **(Requires mod permission)** **(Bot Requires Mod permission)**
 -   [submsg](#submsg) - Command to add a custom message for subscription events **(Requires mod permission)**
+-   [bitmsg](#bitmsg) - Command to add a custom message for cheer events **(Requires mod permission)**
 
 # Custom commands
 

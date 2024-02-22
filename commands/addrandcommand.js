@@ -1,6 +1,6 @@
 module.exports = {
 	name: 'addrandcommand',
-	description: 'add a custom command that rolls a random number to your channel',
+	description: 'add a custom command that generates a random number to your channel',
 	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
@@ -18,10 +18,14 @@ module.exports = {
 		let min = parseInt(message.split(' ')[2]);
 		let max = parseInt(message.split(' ')[3]);
 		let output = message.split(' ').slice(4).join(' ');
+
+		// check if custom command already exists
 		let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)};`;
 		result = result.concat(await sql`SELECT output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`);
+		result = result.concat(await sql`SELECT output FROM countercommands WHERE username=${String(channelName)} AND command=${String(command)}`);
+
 		if (client.commands.get(command) || result.length > 0) {
-			return client.say(channel, `@${tags.username}, failed to add command, command already exists.`);
+			return client.say(channel, `@${tags.username}, failed to add command, command already exist in command, randcommand or countercommand.`);
 		}
 
 		await sql`INSERT INTO randcommands (username, command, min , max, output) VALUES (${String(channelName)}, ${String(command)}, ${min},${max}, ${String(

@@ -225,7 +225,7 @@ Variables:
 
 ## removecommand
 
-Removes a custom command aded via `!addcommand` from channel.
+Removes a custom command added via `!addcommand` from channel.
 
 **Usage:** `!removecommand [command]`
 
@@ -251,7 +251,7 @@ Variables:
 
 ## removerandcommand
 
-Removes a custom rng command aded via `!addrandcommand` from channel.
+Removes a custom rng command added via `!addrandcommand` from channel.
 
 **Usage:** `!removerandcommand [command]`
 
@@ -260,4 +260,32 @@ Removes a custom rng command aded via `!addrandcommand` from channel.
 
 ## addcountercommand
 
+Add a custom command that counts when the command is used. Common usage: death counter.
+
+**Usage:**
+`!addcountercommand [command] [message]`
+
+Variables:
+
+-   {user} - username of the user or mentioned user
+-   {count} - the counted value
+
+**Example:**
+`!addcountercommand death Bottercype died {count} times.`
+**Output when using `!deathadd` (Initial count: 0):**
+Bottercype died 1 times.
+**Output when using `!deathsub` (Initial count: 1):**
+Bottercype died 0 times.
+**Output when using `!deathset 69` (Initial count: 0):**
+Bottercype died 69 times.
+**Output when using `!death` (Initial count: 69):**
+Bottercype died 69 times.
+
 ## removecountercommand
+
+Removes a custom counter command added via `!addcountercommand` from channel.
+
+**Usage:** `!removecountercommand [command]`
+
+**Example:**
+`!removecountercommand death`

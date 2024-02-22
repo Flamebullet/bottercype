@@ -1,6 +1,6 @@
 module.exports = {
-	name: 'addcommand',
-	description: 'add a custom command to your channel',
+	name: 'addcountercommand',
+	description: 'add a custom command that counts to your channel',
 	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		// check for broadcaster/mod permission
 		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
@@ -22,7 +22,9 @@ module.exports = {
 			return client.say(channel, `@${tags.username}, failed to add command, command already exist in command, randcommand or countercommand.`);
 		}
 
-		await sql`INSERT INTO commands (username, command, output) VALUES (${String(channelName)}, ${String(command)}, ${String(output)});`;
+		await sql`INSERT INTO countercommands (username, command, count, output) VALUES (${String(channelName)}, ${String(command)}, ${String('0')}, ${String(
+			output
+		)});`;
 
 		return client.say(channel, `@${tags.username}, new command '${command}' has been added successfully!`);
 	}

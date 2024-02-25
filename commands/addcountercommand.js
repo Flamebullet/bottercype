@@ -15,8 +15,8 @@ module.exports = {
 
 		// check if custom command already exists
 		let result = await sql`SELECT output FROM commands WHERE username=${String(channelName)} AND command=${String(command)};`;
-		result = result.concat(await sql`SELECT output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)}`);
-		result = result.concat(await sql`SELECT output FROM countercommands WHERE username=${String(channelName)} AND command=${String(command)}`);
+		result = result.concat(await sql`SELECT output FROM randcommands WHERE username=${String(channelName)} AND command=${String(command)};`);
+		result = result.concat(await sql`SELECT output FROM countercommands WHERE username=${String(channelName)} AND command=${String(command)};`);
 
 		if (client.commands.get(command) || result.length > 0) {
 			return client.say(channel, `@${tags.username}, failed to add command, command already exist in command, randcommand or countercommand.`);

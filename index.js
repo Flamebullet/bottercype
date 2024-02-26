@@ -104,7 +104,7 @@ const run = async () => {
 					if (currentlyLive.data.data.length != 0) {
 						client.say(
 							`#${currentlyLive.data.data[0].user_login}`,
-							`@${currentlyLive.data.data[0].user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
 						);
 					}
 
@@ -113,6 +113,7 @@ const run = async () => {
 					});
 
 					followChannel.streamOnline.onTrigger(async (data) => {
+						await wait(2000);
 						let currentlyLive = await axios({
 							method: 'get',
 							url: `https://api.twitch.tv/helix/streams?user_id${data.broadcaster_user_id}&type=live`,
@@ -122,15 +123,15 @@ const run = async () => {
 							}
 						});
 
-						client.say(
+						await client.say(
 							`#${data.broadcaster_user_login}`,
-							`@${data.broadcaster_user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
 						);
 					});
 
 					followChannel.streamOnline.onError((e) => {
 						console.error('TElistener error', e.getResponse());
-						fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+						fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
 					});
 				});
 			}
@@ -170,10 +171,10 @@ const run = async () => {
 
 				followChannel.channelFollow.onError((e) => {
 					console.error('TElistener error', e.getResponse());
-					fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+					fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
 				});
 			} else {
-				console.log('User not found and removed from database');
+				console.log(`User ${userId} not found and removed from database`);
 				await sql`DELETE FROM followmsg WHERE username=${String(d.username)};`;
 			}
 		});
@@ -215,7 +216,7 @@ const run = async () => {
 
 					followChannel.channelFollow.onError((e) => {
 						console.error('TElistener error', e.getResponse());
-						fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+						fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
 					});
 
 					client.say(`#${payload.username}`, `@${payload.username}, follow event message has been added successfully!`);
@@ -226,7 +227,7 @@ const run = async () => {
 				}
 			} catch (err) {
 				console.error('Error setting up follow message', err);
-				fs.appendFile('error.txt', '\n' + 'Error setting up follow message: \n' + err, () => {});
+				fs.appendFile('error.txt', `\n${new Date().toUTCString()} Error setting up follow message: \n ${err}`, () => {});
 			}
 		});
 
@@ -238,7 +239,7 @@ const run = async () => {
 				}
 			} catch (err) {
 				console.error('Error joining or disconnecting twitch channel', err);
-				fs.appendFile('error.txt', '\n' + 'Error joining or disconnecting twitch channel: \n' + err, () => {});
+				fs.appendFile('error.txt', `\n${new Date().toUTCString()} Error joining or disconnecting twitch channel: \n ${err}`, () => {});
 			}
 		});
 
@@ -299,7 +300,7 @@ const run = async () => {
 
 						followChannel.streamOnline.onError((e) => {
 							console.error('TElistener error', e.getResponse());
-							fs.appendFile('error.txt', '\n' + 'TElistener error: \n' + e.getResponse(), () => {});
+							fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
 						});
 					});
 
@@ -314,13 +315,13 @@ const run = async () => {
 				}
 			} catch (err) {
 				console.error('Error joining or disconnecting twitch channel', err);
-				fs.appendFile('error.txt', '\n' + 'Error joining or disconnecting twitch channel: \n' + err, () => {});
+				fs.appendFile('error.txt', `\n${new Date().toUTCString()} Error joining or disconnecting twitch channel: \n ${err}`, () => {});
 			}
 		});
 
 		subscriber.events.on('error', (err) => {
 			console.error('fatal database error:', err);
-			fs.appendFile('error.txt', '\n' + 'fatal database error: \n' + err, () => {});
+			fs.appendFile('error.txt', `\n${new Date().toUTCString()} fatal database error: \n ${err}`, () => {});
 		});
 
 		client.on('subscription', async (channel, username, methods, message, userstate) => {
@@ -464,11 +465,11 @@ const run = async () => {
 		});
 		client.on('error', (err) => {
 			console.error('client error:', err);
-			fs.appendFile('error.txt', '\n' + 'client error: \n' + err, () => {});
+			fs.appendFile('error.txt', `\n${new Date().toUTCString()} client error: \n ${err}`, () => {});
 		});
 	} catch (err) {
 		console.error('run() error', err);
-		fs.appendFile('error.txt', '\n' + 'run() error: \n' + err, () => {});
+		fs.appendFile('error.txt', `\n${new Date().toUTCString()} run() error: \n ${err}`, () => {});
 	}
 };
 

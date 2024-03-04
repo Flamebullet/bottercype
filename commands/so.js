@@ -47,7 +47,7 @@ module.exports = {
 
 			const userInfo = await axios({
 				method: 'get',
-				url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
+				url: `https://api.twitch.tv/helix/users?login=${user}`,
 				headers: {
 					'Client-ID': twitchID,
 					'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`

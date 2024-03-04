@@ -328,7 +328,7 @@ const run = async () => {
 			const result = await sql`SELECT * FROM submsg WHERE username=${channel.substring(1)} AND type='sub'`;
 			if (result.length > 0) {
 				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
-				await client.say(channel, result.message.replace('{user}', `@${username}`).replace('{tier}', `${String(tier)}`));
+				await client.say(channel, result[0].message.replace('{user}', `@${username}`).replace('{tier}', `${String(tier)}`));
 			}
 		});
 
@@ -338,7 +338,7 @@ const run = async () => {
 				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
 				await client.say(
 					channel,
-					result.message
+					result[0].message
 						.replace('{user}', `@${username}`)
 						.replace('{tier}', `${String(tier)}`)
 						.replace('{duration}', `${~~userstate['msg-param-cumulative-months']} months`)
@@ -352,7 +352,7 @@ const run = async () => {
 				const tier = methods.prime ? 'Prime' : `tier ${parseInt(methods.plan) / 1000}`;
 				await client.say(
 					channel,
-					result.message
+					result[0].message
 						.replace('{user}', `@${username}`)
 						.replace('{subcount}', String(numbOfSubs))
 						.replace('{tier}', `${String(tier)}`)
@@ -364,7 +364,7 @@ const run = async () => {
 		client.on('cheer', async (channel, userstate, message) => {
 			const result = await sql`SELECT * FROM bitmsg WHERE username=${channel.substring(1)}`;
 			if (result.length > 0) {
-				await client.say(channel, result.message.replace('{user}', `@${userstate['display-name']}`).replace('{bits}', userstate.bits));
+				await client.say(channel, result[0].message.replace('{user}', `@${userstate['display-name']}`).replace('{bits}', userstate.bits));
 			}
 		});
 

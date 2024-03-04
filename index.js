@@ -43,6 +43,36 @@ const sql = postgres(databaseUrl, {
 });
 const subscriber = createSubscriber({ connectionString: databaseUrl });
 
+// Functions
+function likenessScore(a) {
+	let b = `Hello, sorry for bothering you. I want to offer promotion of your channel, viewers, followers, views, chat bots, etc...The price is lower than any competitor, the quality is guaranteed to be the best. Flexible and convenient order management panel, chat panel, everything is in your hands, turn it on/off/customize. Go to stream-rise com`;
+	const matrix = [];
+
+	for (let i = 0; i <= b.length; i++) {
+		matrix[i] = [i];
+	}
+
+	for (let j = 0; j <= a.length; j++) {
+		matrix[0][j] = j;
+	}
+
+	for (let i = 1; i <= b.length; i++) {
+		for (let j = 1; j <= a.length; j++) {
+			if (b.charAt(i - 1) === a.charAt(j - 1)) {
+				matrix[i][j] = matrix[i - 1][j - 1];
+			} else {
+				matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+			}
+		}
+	}
+
+	const levDistance = matrix[b.length][a.length];
+	const maxLength = Math.max(a.length, b.length);
+	const likeness = 1 - levDistance / maxLength;
+
+	return likeness;
+}
+
 const run = async () => {
 	try {
 		await client.connect();
@@ -131,7 +161,7 @@ const run = async () => {
 
 					followChannel.streamOnline.onError((e) => {
 						console.error('TElistener error', e.getResponse());
-						fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
+						fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${String(e.getResponse())}`, () => {});
 					});
 				});
 			}
@@ -150,7 +180,7 @@ const run = async () => {
 
 			const userInfo = await axios({
 				method: 'get',
-				url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
+				url: `https://api.twitch.tv/helix/users?login=${d.username}`,
 				headers: {
 					'Client-ID': twitchID,
 					'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
@@ -355,7 +385,7 @@ const run = async () => {
 					result[0].message
 						.replace('{user}', `@${username}`)
 						.replace('{subcount}', String(numbOfSubs))
-						.replace('{tier}', `${String(tier)}`)
+						.replace('{tier}', `${tier}`)
 						.replace('{totalcount}', ~~userstate['msg-param-sender-count'])
 				);
 			}
@@ -370,8 +400,62 @@ const run = async () => {
 
 		// when receive message in live/test channels
 		client.on('message', async (channel, tags, message, self) => {
-			// Ignore echoed messages.
+			// Ignore own messages.
 			if (self) return;
+			// Detect bot spam
+			if (likenessScore(message) >= 0.8) {
+				// streamer id
+				const streamerId = (
+					await axios({
+						method: 'get',
+						url: `https://api.twitch.tv/helix/users?login=${channel.substring(1)}`,
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+						}
+					})
+				).data.data[0].id;
+
+				// banned user id
+				const userId = (
+					await axios({
+						method: 'get',
+						url: `https://api.twitch.tv/helix/users?login=${tags.username}`,
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+						}
+					})
+				).data.data[0].id;
+
+				if (likenessScore(message) >= 0.8) {
+					await axios({
+						method: 'post',
+						url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`,
+							'Content-Type': 'application/json'
+						},
+						data: {
+							data: {
+								user_id: userId,
+								reason: `Bot spam detected. Confidence ${(likenessScore(message) * 100).toFixed(2)}%.`
+							}
+						}
+					}).catch((error) => {
+						console.error('ban error:', error);
+						fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
+					});
+				} else if (likenessScore(message) >= 0.71) {
+					client.deletemessage(channel, tags.id).catch((error) => {
+						console.error('msg delete error:', error);
+						fs.appendFile('error.txt', `\n${new Date().toUTCString()} msg delete error: \n ${error}`, () => {});
+					});
+					client.say(channel, `Bot spam detected. Confidence ${(likenessScore(message) * 100).toFixed(2)}%.`);
+				}
+			}
+			// ignore messages without prefix
 			if (self || !message.startsWith(prefix)) return;
 
 			const args = message.substring(prefix.length).split(' ');

@@ -84,7 +84,7 @@ module.exports = {
 						'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 					},
 					params: {
-						broadcaster_id: userInfo.id
+						broadcaster_id: userId
 					}
 				})
 			).data.data[0];

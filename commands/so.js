@@ -59,10 +59,7 @@ module.exports = {
 			if (!userId) return client.say(channel, `@${tags.username}, user \`${user}\` not found`);
 
 			if (result.length == 0) {
-				return client.say(
-					channel,
-					`@${tags.username}, shoutout message has yet to be added, perform a \`!so add\` to add a shoutout message, more info at https://github.com/Flamebullet/bottercype?tab=readme-ov-file#so`
-				);
+				return;
 			}
 			const lastStream = (
 				await axios.get('https://api.twitch.tv/helix/videos', {

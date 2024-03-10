@@ -44,8 +44,7 @@ const sql = postgres(databaseUrl, {
 const subscriber = createSubscriber({ connectionString: databaseUrl });
 
 // Functions
-function likenessScore(a) {
-	let b = `Hello, sorry for bothering you. I want to offer promotion of your channel, viewers, followers, views, chat bots, etc...The price is lower than any competitor, the quality is guaranteed to be the best. Flexible and convenient order management panel, chat panel, everything is in your hands, turn it on/off/customize. Go to stream-rise com`;
+function likenessScore(a, b) {
 	const matrix = [];
 
 	for (let i = 0; i <= b.length; i++) {
@@ -403,7 +402,9 @@ const run = async () => {
 			// Ignore own messages.
 			if (self) return;
 			// Detect bot spam
-			if (likenessScore(message) >= 0.8) {
+			const b = `Hello, sorry for bothering you. I want to offer promotion of your channel, viewers, followers, views, chat bots, etc...The price is lower than any competitor, the quality is guaranteed to be the best. Flexible and convenient order management panel, chat panel, everything is in your hands, turn it on/off/customize. Go to stream-rise com`;
+			const c = `😩 Boost viewers for free -> In Google, search for "dogehype" and the first website.`;
+			if (likenessScore(message, b) >= 0.71 || likenessScore(message, c) >= 0.8) {
 				// streamer id
 				const streamerId = (
 					await axios({

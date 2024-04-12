@@ -6,6 +6,7 @@ const createSubscriber = require('pg-listen');
 const { EventSub } = require('@twapi/eventsub');
 const { Credentials, AuthProvider } = require('@twapi/auth');
 const axios = require('axios');
+const readline = require('readline');
 
 const { username, password, twitchtoken, twitchrefresh, twitchID, twitchSecret, databaseUrl } = require('./cred.js');
 
@@ -402,60 +403,84 @@ const run = async () => {
 			// Ignore own messages.
 			if (self) return;
 			// Detect bot spam
-			const b = `Hello, sorry for bothering you. I want to offer promotion of your channel, viewers, followers, views, chat bots, etc...The price is lower than any competitor, the quality is guaranteed to be the best. Flexible and convenient order management panel, chat panel, everything is in your hands, turn it on/off/customize. Go to stream-rise com`;
-			const c = `😩 Boost viewers for free -> In Google, search for "dogehype" and the first website.`;
-			if (likenessScore(message, b) >= 0.71 || likenessScore(message, c) >= 0.8) {
-				// streamer id
-				const streamerId = (
-					await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/users?login=${channel.substring(1)}`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
-					})
-				).data.data[0].id;
+			let readStream = fs.createReadStream('./bannedphrases.txt');
 
-				// banned user id
-				const userId = (
-					await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/users?login=${tags.username}`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
-					})
-				).data.data[0].id;
+			// Create readline interface
+			let rl = readline.createInterface({
+				input: readStream,
+				output: process.stdout,
+				terminal: false
+			});
 
-				if (likenessScore(message) >= 0.8) {
-					await axios({
-						method: 'post',
-						url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`,
-							'Content-Type': 'application/json'
-						},
-						data: {
-							data: {
-								user_id: userId,
-								reason: `Bot spam detected. Confidence ${(likenessScore(message) * 100).toFixed(2)}%.`
-							}
-						}
-					}).catch((error) => {
-						console.error('ban error:', error);
-						fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
-					});
-				} else if (likenessScore(message) >= 0.71) {
-					client.deletemessage(channel, tags.id).catch((error) => {
-						console.error('msg delete error:', error);
-						fs.appendFile('error.txt', `\n${new Date().toUTCString()} msg delete error: \n ${error}`, () => {});
-					});
-					client.say(channel, `Bot spam detected. Confidence ${(likenessScore(message) * 100).toFixed(2)}%.`);
+			let lines = [];
+			let highestScore = 0;
+
+			rl.on('line', function (line) {
+				lines.push(line);
+			});
+
+			rl.on('close', async function () {
+				for (let i = 0; i < lines.length; i++) {
+					let score = likenessScore(message, lines[i]);
+					if (score > highestScore) {
+						highestScore = score;
+					}
 				}
-			}
+
+				if (highestScore >= 0.7) {
+					// streamer id
+					const streamerId = (
+						await axios({
+							method: 'get',
+							url: `https://api.twitch.tv/helix/users?login=${channel.substring(1)}`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+							}
+						})
+					).data.data[0].id;
+
+					// banned user id
+					const userId = (
+						await axios({
+							method: 'get',
+							url: `https://api.twitch.tv/helix/users?login=${tags.username}`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+							}
+						})
+					).data.data[0].id;
+
+					if (tags['first-msg'] && highestScore >= 0.7) {
+						await axios({
+							method: 'post',
+							url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`,
+								'Content-Type': 'application/json'
+							},
+							data: {
+								data: {
+									user_id: userId,
+									reason: `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`
+								}
+							}
+						}).catch((error) => {
+							console.error('ban error:', error);
+							fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
+						});
+					} else if (highestScore >= 0.8) {
+						client.deletemessage(channel, tags.id).catch((error) => {
+							console.error('msg delete error:', error);
+							fs.appendFile('error.txt', `\n${new Date().toUTCString()} msg delete error: \n ${error}`, () => {});
+						});
+						client.say(channel, `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`);
+					}
+				}
+			});
+
 			// ignore messages without prefix
 			if (self || !message.startsWith(prefix)) return;
 

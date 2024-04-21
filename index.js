@@ -44,7 +44,7 @@ const sql = postgres(databaseUrl, {
 });
 const subscriber = createSubscriber({ connectionString: databaseUrl });
 
-// Functions
+// Functions levDistance
 function likenessScore(a, b) {
 	const matrix = [];
 

@@ -61,7 +61,7 @@ module.exports = {
 			if (result.length == 0) {
 				return;
 			}
-			const lastStream = (
+			let lastStream = (
 				await axios.get('https://api.twitch.tv/helix/videos', {
 					headers: {
 						'Client-ID': twitchID,
@@ -86,11 +86,15 @@ module.exports = {
 				})
 			).data.data[0];
 
+			if (lastStream == undefined) {
+				lastStream = { duration: `0mins` };
+			}
+
 			let output = await result[0].message
-				.replace('{user}', `@${lastStream.user_name}`)
-				.replace('{link}', `https://twitch.tv/${lastStream.user_name}`)
-				.replace('{game}', channelData.game_name)
-				.replace('{duration}', lastStream.duration);
+				.replace('{user}', `@${user}`)
+				.replace('{link}', `https://twitch.tv/${user}`)
+				.replace('{game}', channelData?.game_name)
+				.replace('{duration}', lastStream?.duration);
 
 			return client.say(channel, output);
 		}

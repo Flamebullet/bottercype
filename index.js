@@ -95,20 +95,12 @@ const run = async () => {
 					let followChannel = followerchannels[data.login];
 					let currentlyLive = await axios({
 						method: 'get',
-						url: `https://api.twitch.tv/helix/streams?user_id${data.id}&type=live`,
+						url: `https://api.twitch.tv/helix/streams?user_id=${data.id}&type=live`,
 						headers: {
 							'Client-ID': twitchID,
 							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 						}
 					});
-
-					if (currentlyLive.data.data.length != 0) {
-						console.log(`line 106 data: ${data}\n${currentlyLive}`);
-						// client.say(
-						// 	`#${currentlyLive.data.data[0].user_login}`,
-						// 	`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-						// );
-					}
 
 					followChannel.streamOnline = TEclient.register('streamOnline', {
 						broadcaster_user_id: String(data.id)
@@ -118,18 +110,18 @@ const run = async () => {
 						await wait(10000);
 						let currentlyLive = await axios({
 							method: 'get',
-							url: `https://api.twitch.tv/helix/streams?user_login${data.broadcaster_user_login}&type=live`,
+							url: `https://api.twitch.tv/helix/streams?user_login=${data.broadcaster_user_login}&type=live`,
 							headers: {
 								'Client-ID': twitchID,
 								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 							}
 						});
-						console.log(`line 127 data: ${data}\n${currentlyLive}`);
 
-						// await client.say(
-						// 	`#${currentlyLive.data.data[0].user_login}`,
-						// 	`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-						// );
+						console.log(`line 120 data:`, data, currentlyLive.data);
+						await client.say(
+							`#${currentlyLive.data.data[0].user_login}`,
+							`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+						);
 					});
 
 					followChannel.streamOnline.onError((e) => {
@@ -267,20 +259,12 @@ const run = async () => {
 					result.data.data.forEach(async (data) => {
 						let currentlyLive = await axios({
 							method: 'get',
-							url: `https://api.twitch.tv/helix/streams?user_id${data.id}&type=live`,
+							url: `https://api.twitch.tv/helix/streams?user_id=${data.id}&type=live`,
 							headers: {
 								'Client-ID': twitchID,
 								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 							}
 						});
-
-						if (currentlyLive.data.data.length != 0) {
-							console.log(`line 278 data: ${data}\n${currentlyLive}`);
-							// client.say(
-							// 	`#${currentlyLive.data.data[0].user_login}`,
-							// 	`@${currentlyLive.data.data[0].user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-							// );
-						}
 
 						followChannel.streamOnline = TEclient.register('streamOnline', {
 							broadcaster_user_id: String(data.id)
@@ -289,18 +273,18 @@ const run = async () => {
 						followChannel.streamOnline.onTrigger(async (data) => {
 							let currentlyLive = await axios({
 								method: 'get',
-								url: `https://api.twitch.tv/helix/streams?user_id${data.broadcaster_user_id}&type=live`,
+								url: `https://api.twitch.tv/helix/streams?user_id=${data.broadcaster_user_id}&type=live`,
 								headers: {
 									'Client-ID': twitchID,
 									'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 								}
 							});
 
-							console.log(`line 299 data: ${data}\n${currentlyLive}`);
-							// client.say(
-							// 	`#${data.broadcaster_user_login}`,
-							// 	`@${data.broadcaster_user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-							// );
+							console.log(`line 283 data:`, data, currentlyLive.data);
+							client.say(
+								`#${currentlyLive.data.data[0].user_login}`,
+								`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							);
 						});
 
 						followChannel.streamOnline.onError((e) => {

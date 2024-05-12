@@ -44,35 +44,6 @@ const sql = postgres(databaseUrl, {
 });
 const subscriber = createSubscriber({ connectionString: databaseUrl });
 
-// Functions levDistance
-function likenessScore(a, b) {
-	const matrix = [];
-
-	for (let i = 0; i <= b.length; i++) {
-		matrix[i] = [i];
-	}
-
-	for (let j = 0; j <= a.length; j++) {
-		matrix[0][j] = j;
-	}
-
-	for (let i = 1; i <= b.length; i++) {
-		for (let j = 1; j <= a.length; j++) {
-			if (b.charAt(i - 1) === a.charAt(j - 1)) {
-				matrix[i][j] = matrix[i - 1][j - 1];
-			} else {
-				matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
-			}
-		}
-	}
-
-	const levDistance = matrix[b.length][a.length];
-	const maxLength = Math.max(a.length, b.length);
-	const likeness = 1 - levDistance / maxLength;
-
-	return likeness;
-}
-
 const run = async () => {
 	try {
 		await client.connect();
@@ -132,10 +103,11 @@ const run = async () => {
 					});
 
 					if (currentlyLive.data.data.length != 0) {
-						client.say(
-							`#${currentlyLive.data.data[0].user_login}`,
-							`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-						);
+						console.log(`line 106 data: ${data}\n${currentlyLive}`);
+						// client.say(
+						// 	`#${currentlyLive.data.data[0].user_login}`,
+						// 	`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+						// );
 					}
 
 					followChannel.streamOnline = TEclient.register('streamOnline', {
@@ -143,20 +115,21 @@ const run = async () => {
 					});
 
 					followChannel.streamOnline.onTrigger(async (data) => {
-						await wait(2000);
+						await wait(10000);
 						let currentlyLive = await axios({
 							method: 'get',
-							url: `https://api.twitch.tv/helix/streams?user_id${data.broadcaster_user_id}&type=live`,
+							url: `https://api.twitch.tv/helix/streams?user_login${data.broadcaster_user_login}&type=live`,
 							headers: {
 								'Client-ID': twitchID,
 								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
 							}
 						});
+						console.log(`line 127 data: ${data}\n${currentlyLive}`);
 
-						await client.say(
-							`#${data.broadcaster_user_login}`,
-							`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-						);
+						// await client.say(
+						// 	`#${currentlyLive.data.data[0].user_login}`,
+						// 	`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+						// );
 					});
 
 					followChannel.streamOnline.onError((e) => {
@@ -302,10 +275,11 @@ const run = async () => {
 						});
 
 						if (currentlyLive.data.data.length != 0) {
-							client.say(
-								`#${currentlyLive.data.data[0].user_login}`,
-								`@${currentlyLive.data.data[0].user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-							);
+							console.log(`line 278 data: ${data}\n${currentlyLive}`);
+							// client.say(
+							// 	`#${currentlyLive.data.data[0].user_login}`,
+							// 	`@${currentlyLive.data.data[0].user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							// );
 						}
 
 						followChannel.streamOnline = TEclient.register('streamOnline', {
@@ -322,10 +296,11 @@ const run = async () => {
 								}
 							});
 
-							client.say(
-								`#${data.broadcaster_user_login}`,
-								`@${data.broadcaster_user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-							);
+							console.log(`line 299 data: ${data}\n${currentlyLive}`);
+							// client.say(
+							// 	`#${data.broadcaster_user_login}`,
+							// 	`@${data.broadcaster_user_login} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+							// );
 						});
 
 						followChannel.streamOnline.onError((e) => {
@@ -586,6 +561,35 @@ const run = async () => {
 // functions
 function wait(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Functions levDistance
+function likenessScore(a, b) {
+	const matrix = [];
+
+	for (let i = 0; i <= b.length; i++) {
+		matrix[i] = [i];
+	}
+
+	for (let j = 0; j <= a.length; j++) {
+		matrix[0][j] = j;
+	}
+
+	for (let i = 1; i <= b.length; i++) {
+		for (let j = 1; j <= a.length; j++) {
+			if (b.charAt(i - 1) === a.charAt(j - 1)) {
+				matrix[i][j] = matrix[i - 1][j - 1];
+			} else {
+				matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+			}
+		}
+	}
+
+	const levDistance = matrix[b.length][a.length];
+	const maxLength = Math.max(a.length, b.length);
+	const likeness = 1 - levDistance / maxLength;
+
+	return likeness;
 }
 
 run();

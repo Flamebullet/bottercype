@@ -471,7 +471,7 @@ const run = async () => {
 						client.say(channel, output);
 					}
 
-					// execute custom counter command that changes count value
+					// subtract or set counter command
 					result = await sql`SELECT count, output FROM countercommands WHERE username=${String(channelName)} AND command=${String(
 						command.substring(0, command.length - 3)
 					)};`;
@@ -484,15 +484,13 @@ const run = async () => {
 								}, Only channel broadcaster/mod has the permission to add counter, if you want to check current count use !${command.substring(
 									0,
 									command.length - 3
-								)}.`
+								)}count.`
 							);
 						}
 						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : args.length > 1 ? args[1] : tags.username;
 						let count = BigInt(result[0].count);
 						let action = command.slice(-3).toLowerCase();
-						if (action == 'add') {
-							count++;
-						} else if (action == 'sub') {
+						if (action == 'sub') {
 							count--;
 						} else if (action == 'set') {
 							try {
@@ -511,14 +509,40 @@ const run = async () => {
 						client.say(channel, output);
 					}
 
-					// viewing custom counter command value
+					// adding custom counter command value
 					result = await sql`SELECT count, output FROM countercommands WHERE username=${String(channelName)} AND command=${String(command)};`;
 					if (result.length > 0) {
+						if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
+							return client.say(
+								channel,
+								`@${tags.username}, Only channel broadcaster/mod has the permission to add counter, if you want to check current count use !${command}count.`
+							);
+						}
 						let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : args.length > 1 ? args[1] : tags.username;
-						let count = result[0].count;
+						let count = BigInt(result[0].count);
+						count++;
+
+						await sql`UPDATE countercommands
+                        SET count = ${String(count)}
+                        WHERE username=${String(channelName)} AND command=${String(command)};
+                        `;
 
 						let output = await result[0].output.replace('{user}', `@${user}`).replace('{count}', count);
 						client.say(channel, output);
+					}
+
+					// check the counter for custom counter command
+					if (command.slice(-5) == 'count') {
+						result = await sql`SELECT count, output FROM countercommands WHERE username=${String(channelName)} AND command=${String(
+							command.substring(0, command.length - 5)
+						)};`;
+						if (result.length > 0) {
+							let user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : args.length > 1 ? args[1] : tags.username;
+							let count = BigInt(result[0].count);
+
+							let output = await result[0].output.replace('{user}', `@${user}`).replace('{count}', count);
+							client.say(channel, output);
+						}
 					}
 				}
 			} else {

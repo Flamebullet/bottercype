@@ -386,7 +386,7 @@ const run = async () => {
 					}
 				}
 
-				if (highestScore >= 0.7) {
+				if (highestScore >= 0.6) {
 					// streamer id
 					const streamerId = (
 						await axios({
@@ -411,7 +411,7 @@ const run = async () => {
 						})
 					).data.data[0].id;
 
-					if (tags['first-msg'] && highestScore >= 0.7) {
+					if (tags['first-msg'] && highestScore >= 0.6) {
 						await axios({
 							method: 'post',
 							url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,

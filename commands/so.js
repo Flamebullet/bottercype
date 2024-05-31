@@ -43,6 +43,10 @@ module.exports = {
 			}
 		} else {
 			let result = await sql`SELECT * FROM so WHERE username=${String(channelName)};`;
+			if (result.length == 0) {
+				return;
+			}
+
 			const user = message.match(/@(\w+)/) ? message.match(/@(\w+)/)[1] : message.split(' ')[1];
 
 			const userInfo = await axios({
@@ -58,22 +62,6 @@ module.exports = {
 
 			if (!userId) return client.say(channel, `@${tags.username}, user \`${user}\` not found`);
 
-			if (result.length == 0) {
-				return;
-			}
-			let lastStream = (
-				await axios.get('https://api.twitch.tv/helix/videos', {
-					headers: {
-						'Client-ID': twitchID,
-						'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-					},
-					params: {
-						user_id: userId,
-						first: 1
-					}
-				})
-			).data.data[0];
-
 			const channelData = (
 				await axios.get('https://api.twitch.tv/helix/channels', {
 					headers: {
@@ -86,15 +74,10 @@ module.exports = {
 				})
 			).data.data[0];
 
-			if (lastStream == undefined) {
-				lastStream = { duration: `0mins` };
-			}
-
 			let output = await result[0].message
 				.replace('{user}', `@${user}`)
 				.replace('{link}', `https://twitch.tv/${user}`)
-				.replace('{game}', channelData?.game_name)
-				.replace('{duration}', lastStream?.duration);
+				.replace('{game}', channelData?.game_name);
 
 			return client.say(channel, output);
 		}

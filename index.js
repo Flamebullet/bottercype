@@ -57,6 +57,11 @@ const run = async () => {
 
 		const TEclient = new EventSub(authProvider);
 		TEclient.run();
+		setInterval(() => {
+			if (!TEclient.isConnected()) {
+				TEclient.run();
+			}
+		}, 1800000);
 
 		// listen to channels to go live
 		await sql`SELECT DISTINCT username FROM channels;`.then(async (results) => {
@@ -117,7 +122,6 @@ const run = async () => {
 							}
 						});
 
-						console.log(`line 120 data:`, data, currentlyLive.data);
 						await client.say(
 							`#${currentlyLive.data.data[0].user_login}`,
 							`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
@@ -280,7 +284,6 @@ const run = async () => {
 								}
 							});
 
-							console.log(`line 283 data:`, data, currentlyLive.data);
 							client.say(
 								`#${currentlyLive.data.data[0].user_login}`,
 								`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
@@ -411,7 +414,7 @@ const run = async () => {
 						})
 					).data.data[0].id;
 
-					if (tags['first-msg'] && highestScore >= 0.6) {
+					if (tags['first-msg'] && highestScore >= 0.55) {
 						await axios({
 							method: 'post',
 							url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,

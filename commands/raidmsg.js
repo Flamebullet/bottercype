@@ -15,8 +15,8 @@ module.exports = {
 
 		let channelName = channel.substring(1);
 		let action = message.split(' ')[1].toLowerCase();
-		let autoso = Boolean(message.split(' ')[1].toLowerCase());
-		let output = message.split(' ').slice(2).join(' ');
+		let autoso = Boolean(message.split(' ')[2].toLowerCase());
+		let output = message.split(' ').slice(3).join(' ');
 
 		let result = await sql`SELECT * FROM raidmsg WHERE username=${String(channelName)};`;
 		if (result.length > 0) {

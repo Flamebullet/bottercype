@@ -13,12 +13,12 @@
     "@twapi/eventsub": "^1.0.6",
     "@twurple/auth": "^7.1.0",
     "@twurple/auth-tmi": "^7.1.0",
-    "axios": "^1.6.8",
+    "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "pg-listen": "^1.7.0",
     "postgres": "^3.4.4",
     "request": "^2.88.2",
     "tmi.js": "^1.8.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.3"
   }
 }

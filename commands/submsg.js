@@ -50,7 +50,7 @@ module.exports = {
 			} else if (action == 'removesub' || action == 'removeresub' || action == 'removegiftsub') {
 				return client.say(
 					channel,
-					`@${tags.username}, unable to remove subscriber event as it does not exist, use the command \`!sub addsub|addresub|addgiftsub [message]\` to add a subscriber event message.`
+					`@${tags.username}, unable to remove subscriber event as it does not exist, use the command \`!submsg addsub|addresub|addgiftsub [message]\` to add a subscriber event message.`
 				);
 			}
 		}

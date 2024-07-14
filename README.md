@@ -208,6 +208,33 @@ Thank you @Bottercype for the 100bits
 **Usage:**
 `!bitmsg remove`
 
+## raidmsg
+
+Setup a custom message that triggers when a user sends bits your channel.
+Auto shoutout will determine if bot will automatically shoutout when you get raided. Only `true` or `false` in full lowercase should be enter for this field, if anything else other than `true` or `false` is entered, it will default to true.
+Shoutout message is required to be set to automatically shoutout.
+
+#### To add a raid message
+
+**Usage:**
+`!raidmsg add [auto shoutout: true | false] [message]`
+
+Variables:
+
+-   {user} - Username of the channel raiding you
+-   {viewers} - Number of viewers they sent over
+
+**Example:**
+`!raidmsg add true {raider} raided with {viewers} viewers!`
+
+**Output when a user raided you with 69 viewers:**
+@Bottercype raided with 69 viewers
+
+#### To remove the bit message
+
+**Usage:**
+`!raidmsg remove`
+
 ## addcommand
 
 Add a custom command to your channel. Common use case include plugging in socials with `!socials` or `!lurk`.

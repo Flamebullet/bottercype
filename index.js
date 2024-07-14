@@ -9,6 +9,7 @@ const axios = require('axios');
 const readline = require('readline');
 
 const { username, password, twitchtoken, twitchrefresh, twitchID, twitchSecret, databaseUrl } = require('./cred.js');
+const { channel } = require('diagnostics_channel');
 
 // global variables
 let acceptedChannels = [];
@@ -360,6 +361,51 @@ const run = async () => {
 			}
 		});
 
+		client.on('raided', async (channel, username, viewers) => {
+			let result = await sql`SELECT * FROM raidmsg WHERE username=${channel.substring(1)}`;
+			if (result.length > 0) {
+				await client.say(channel, result[0].message.replace('{raider}', `@${username}`).replace('{viewers}', viewers));
+
+				// shoutout message
+				result = await sql`SELECT * FROM so WHERE username=${String(channel.substring(1))};`;
+				if (result.length == 0) {
+					return;
+				}
+
+				const userInfo = await axios({
+					method: 'get',
+					url: `https://api.twitch.tv/helix/users?login=${username}`,
+					headers: {
+						'Client-ID': twitchID,
+						'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+					}
+				});
+
+				let userId = userInfo.data.data[0].id;
+
+				if (!userId) return client.say(channel, `@${channel.substring(1)}, user \`${username}\` not found`);
+
+				const channelData = (
+					await axios.get('https://api.twitch.tv/helix/channels', {
+						headers: {
+							'Client-ID': twitchID,
+							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+						},
+						params: {
+							broadcaster_id: userId
+						}
+					})
+				).data.data[0];
+
+				let output = await result[0].message
+					.replace('{user}', `@${username}`)
+					.replace('{link}', `https://twitch.tv/${username}`)
+					.replace('{game}', channelData?.game_name);
+
+				return client.say(channel, output);
+			}
+		});
+
 		// when receive message in live/test channels
 		client.on('message', async (channel, tags, message, self) => {
 			// Ignore own messages.
@@ -559,6 +605,7 @@ const run = async () => {
 				}
 			}
 		});
+
 		client.on('error', (err) => {
 			console.error('client error:', err);
 			fs.appendFile('error.txt', `\n${new Date().toUTCString()} client error: \n ${err}`, () => {});

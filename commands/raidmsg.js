@@ -15,7 +15,6 @@ module.exports = {
 
 		let channelName = channel.substring(1);
 		let action = message.split(' ')[1].toLowerCase();
-		let autoso = Boolean(message.split(' ')[2].toLowerCase());
 		let output = message.split(' ').slice(3).join(' ');
 
 		let result = await sql`SELECT * FROM raidmsg WHERE username=${String(channelName)};`;
@@ -28,6 +27,7 @@ module.exports = {
 			}
 		} else {
 			if (action == 'add') {
+				let autoso = Boolean(message.split(' ')[2].toLowerCase());
 				await sql`INSERT INTO raidmsg (username, message, autoso) VALUES (${String(channelName)}, ${String(output)}, ${autoso});`;
 
 				return client.say(channel, `@${tags.username}, raid message event has been added successfully!`);

@@ -435,7 +435,7 @@ const run = async () => {
 					}
 				}
 
-				if (highestScore >= 0.6) {
+				if (highestScore >= 0.55) {
 					// streamer id
 					const streamerId = (
 						await axios({
@@ -479,7 +479,7 @@ const run = async () => {
 							console.error('ban error:', error);
 							fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
 						});
-					} else if (highestScore >= 0.8) {
+					} else if (highestScore >= 0.6) {
 						client.deletemessage(channel, tags.id).catch((error) => {
 							console.error('msg delete error:', error);
 							fs.appendFile('error.txt', `\n${new Date().toUTCString()} msg delete error: \n ${error}`, () => {});

@@ -287,7 +287,7 @@ const run = async () => {
 
 							client.say(
 								`#${currentlyLive.data.data[0].user_login}`,
-								`@${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+								`! @${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
 							);
 						});
 

@@ -54,6 +54,7 @@ let rl = readline.createInterface({
 });
 let lines = [];
 let highestScore = 0;
+const bestViewerRegex = /^((Ch̍?eap|B͟?est) Viewers on )/gim;
 rl.on('line', function (line) {
 	lines.push(line);
 });
@@ -426,10 +427,13 @@ const run = async () => {
 
 			// Detect bot spam
 			for (let i = 0; i < lines.length; i++) {
-				let score = likenessScore(message, lines[i]);
-				if (score > highestScore) {
-					highestScore = score;
+				if (message.match(bestViewerRegex)) {
+					highestScore = 1;
+					break;
 				}
+				let score = likenessScore(message, lines[i]);
+				if (score > highestScore) highestScore = score;
+				if (highestScore > 0.55) break;
 			}
 
 			if (highestScore >= 0.55) {

@@ -54,7 +54,7 @@ let rl = readline.createInterface({
 });
 let lines = [];
 let highestScore = 0;
-const bestViewerRegex = /^((Ch̍?eap|B͟?est) Viewers on )/gim;
+const bestViewerRegex = /^((C(h̍?|\S+)eap|((B͟|\S+)est)) (V|v)iewers on )(\S|\s)+/gim;
 rl.on('line', function (line) {
 	lines.push(line);
 });
@@ -427,7 +427,7 @@ const run = async () => {
 
 			// Detect bot spam
 			for (let i = 0; i < lines.length; i++) {
-				if (message.match(bestViewerRegex)) {
+				if (tags['first-msg'] && message.match(bestViewerRegex)) {
 					highestScore = 1;
 					break;
 				}

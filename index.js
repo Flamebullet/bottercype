@@ -425,6 +425,8 @@ const run = async () => {
 			// Ignore own messages.
 			if (self) return;
 
+			let highestScore = 0;
+
 			// Detect bot spam
 			for (let i = 0; i < lines.length; i++) {
 				if (tags['first-msg'] && message.match(bestViewerRegex)) {

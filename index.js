@@ -54,7 +54,7 @@ let rl = readline.createInterface({
 });
 let lines = [];
 let highestScore = 0;
-const bestViewerRegex = /^((C(h̍?|\S+)eap|((B͟|\S+)est)) (((V|v)iewers)|(foll(o|\S+)wer(s|\S+))) ((on)|(and)) )(\S|\s)+/gim;
+const bestViewerRegex = /^((C(h̍?|\S+)eap|((B͟|\S+)est)) (((V|v)iewers)|(foll(o|\S+)wer(s|\S+))) (((o|\S+)(n|\S+))|(and)) )(\S|\s)+/gim;
 rl.on('line', function (line) {
 	lines.push(line);
 });

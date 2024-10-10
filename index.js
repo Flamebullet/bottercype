@@ -423,6 +423,13 @@ const run = async () => {
 			// Ignore own messages.
 			if (self) return;
 
+			if (message.toLocaleLowerCase() == 'good bot') {
+				return client.say(channel, `Thanks :3`);
+			}
+			if (message.toLocaleLowerCase() == 'bad bot') {
+				return client.say(channel, `D:`);
+			}
+
 			let highestScore = 0;
 
 			// Detect bot spam
@@ -481,11 +488,7 @@ const run = async () => {
 						fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
 					});
 				} else if (highestScore >= 0.6) {
-					client.deletemessage(channel, tags.id).catch((error) => {
-						console.error('msg delete error:', error);
-						fs.appendFile('error.txt', `\n${new Date().toUTCString()} msg delete error: \n ${error}`, () => {});
-					});
-					client.say(channel, `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`);
+					client.timeout(channel, tags.username, 5, `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`);
 				}
 			}
 

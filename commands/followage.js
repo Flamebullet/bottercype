@@ -7,6 +7,20 @@ module.exports = {
 	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		let channelName = channel.substring(1);
 
+		// command toggle stuff
+		let isenabled = await sql`SELECT * FROM commandtoggles WHERE username=${String(channelName)} AND command='followage';`;
+		if (isenabled.length == 0) {
+			await sql`INSERT INTO commandtoggles (username, enable, command) VALUES (${String(channelName)}, ${Boolean(false)}, 'followage');`;
+		}
+
+		if (message.split(' ').length == 2 && message.split(' ')[1] == 'enable') {
+			await sql`UPDATE commandtoggles SET enable=${Boolean(true)} WHERE username=${String(channelName)} AND command='followage';`;
+		} else if (message.split(' ').length == 2 && message.split(' ')[1] == 'disable') {
+			await sql`UPDATE commandtoggles SET enable=${Boolean(false)} WHERE username=${String(channelName)} AND command='followage';`;
+		}
+
+		if (isenabled.length == 0 || isenabled[0].enable == false) return;
+
 		const userIdResult = await axios({
 			method: 'get',
 			url: `https://api.twitch.tv/helix/users?login=${tags.username}`,

@@ -3,6 +3,21 @@ module.exports = {
 	description: 'remove a quote',
 	async execute(channel, tags, message, client, sql, authProvider, followerchannels, TEclient) {
 		let channelName = channel.substring(1);
+
+		// command toggle stuff
+		let isenabled = await sql`SELECT * FROM commandtoggles WHERE username=${String(channelName)} AND command='quote';`;
+		if (isenabled.length == 0) {
+			await sql`INSERT INTO commandtoggles (username, enable, command) VALUES (${String(channelName)}, ${Boolean(false)}, 'quote');`;
+		}
+
+		if (message.split(' ').length == 2 && message.split(' ')[1] == 'enable') {
+			await sql`UPDATE commandtoggles SET enable=${Boolean(true)} WHERE username=${String(channelName)} AND command='quote';`;
+		} else if (message.split(' ').length == 2 && message.split(' ')[1] == 'disable') {
+			await sql`UPDATE commandtoggles SET enable=${Boolean(false)} WHERE username=${String(channelName)} AND command='quote';`;
+		}
+
+		if (isenabled.length == 0 || isenabled[0].enable == false) return;
+
 		let result = await sql`SELECT * FROM quotes WHERE username=${String(channelName)};`;
 		if (message.split(' ').length == 2 && Number.isInteger(parseInt(message.split(' ')[1]))) {
 			// check for broadcaster/mod permission

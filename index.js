@@ -176,7 +176,7 @@ const run = async () => {
 			}
 			let followChannel = followerchannels[d.username];
 
-			let userId = getTwitchUserId(d.username);
+			let userId = await getTwitchUserId(d.username);
 			if (userId) {
 				followChannel.channelFollow = TEclient.register('channelFollow', {
 					broadcaster_user_id: userId,
@@ -206,7 +206,7 @@ const run = async () => {
 					}
 
 					let followChannel = followerchannels[payload.username];
-					let userId = getTwitchUserId(payload.username);
+					let userId = await getTwitchUserId(payload.username);
 
 					followChannel.channelFollow = TEclient.register('channelFollow', {
 						broadcaster_user_id: userId,
@@ -261,7 +261,7 @@ const run = async () => {
 					}
 					let followChannel = followerchannels[payload.username];
 
-					const userId = getTwitchUserId(payload.username);
+					const userId = await getTwitchUserId(payload.username);
 					followChannel.streamOnline = TEclient.register('streamOnline', {
 						broadcaster_user_id: String(userId)
 					});
@@ -419,8 +419,8 @@ const run = async () => {
 
 				if (highestScore >= 0.48) {
 					// streamer id and banned user id
-					const streamerId = getTwitchUserId(channel.substring(1));
-					const userId = getTwitchUserId(tags.username);
+					const streamerId = await getTwitchUserId(channel.substring(1));
+					const userId = await getTwitchUserId(tags.username);
 
 					if (tags['first-msg'] && highestScore >= 0.48) {
 						await axios({

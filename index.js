@@ -53,8 +53,7 @@ let rl = readline.createInterface({
 	terminal: false
 });
 let lines = [];
-let highestScore = 0;
-const bestViewerRegex = /^((C(h̍?|\S+)eap|((B͟|\S+)est)) (((V|v)iewers)|(foll(o|\S+)wer(s|\S+))) (((o|\S+)(n|\S+))|(and)) )(\S|\s)+/gim;
+const bestViewerRegex = /^((C(h̍?|\S+)eap|((B͟|\S+)es(t|\S+))) ((vi(e|\S+)wers)|(foll(o|\S+)wer(s|\S+))) (((o|\S+)(n|\S+))|(and)) (\S|\s)+)/gim;
 rl.on('line', function (line) {
 	lines.push(line);
 });
@@ -77,6 +76,21 @@ const run = async () => {
 				TEclient.run();
 			}
 		}, 1800000);
+
+		async function getTwitchUserId(username) {
+			const userId = (
+				await axios({
+					method: 'get',
+					url: `https://api.twitch.tv/helix/users?login=${username}`,
+					headers: {
+						'Client-ID': twitchID,
+						'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+					}
+				})
+			).data.data[0].id;
+
+			return userId;
+		}
 
 		// listen to channels to go live
 		await sql`SELECT DISTINCT username FROM channels;`.then(async (results) => {
@@ -113,14 +127,14 @@ const run = async () => {
 
 				result.data.data.forEach(async (data) => {
 					let followChannel = followerchannels[data.login];
-					let currentlyLive = await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/streams?user_id=${data.id}&type=live`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
-					});
+					// let currentlyLive = await axios({
+					// 	method: 'get',
+					// 	url: `https://api.twitch.tv/helix/streams?user_id=${data.id}&type=live`,
+					// 	headers: {
+					// 		'Client-ID': twitchID,
+					// 		'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+					// 	}
+					// });
 
 					followChannel.streamOnline = TEclient.register('streamOnline', {
 						broadcaster_user_id: String(data.id)
@@ -162,17 +176,7 @@ const run = async () => {
 			}
 			let followChannel = followerchannels[d.username];
 
-			const userInfo = await axios({
-				method: 'get',
-				url: `https://api.twitch.tv/helix/users?login=${d.username}`,
-				headers: {
-					'Client-ID': twitchID,
-					'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-				}
-			});
-
-			let userId = userInfo.data.data[0].id;
-
+			let userId = getTwitchUserId(d.username);
 			if (userId) {
 				followChannel.channelFollow = TEclient.register('channelFollow', {
 					broadcaster_user_id: userId,
@@ -200,18 +204,9 @@ const run = async () => {
 					if (!followerchannels[payload.username]) {
 						followerchannels[payload.username] = {};
 					}
+
 					let followChannel = followerchannels[payload.username];
-
-					const result = await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
-					});
-
-					let userId = result.data.data[0].id;
+					let userId = getTwitchUserId(payload.username);
 
 					followChannel.channelFollow = TEclient.register('channelFollow', {
 						broadcaster_user_id: userId,
@@ -266,49 +261,30 @@ const run = async () => {
 					}
 					let followChannel = followerchannels[payload.username];
 
-					const result = await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/users?login=${payload.username}`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
+					const userId = getTwitchUserId(payload.username);
+					followChannel.streamOnline = TEclient.register('streamOnline', {
+						broadcaster_user_id: String(userId)
 					});
 
-					result.data.data.forEach(async (data) => {
-						// let currentlyLive = await axios({
-						// 	method: 'get',
-						// 	url: `https://api.twitch.tv/helix/streams?user_id=${data.id}&type=live`,
-						// 	headers: {
-						// 		'Client-ID': twitchID,
-						// 		'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						// 	}
-						// });
-
-						followChannel.streamOnline = TEclient.register('streamOnline', {
-							broadcaster_user_id: String(data.id)
+					followChannel.streamOnline.onTrigger(async (data) => {
+						let currentlyLive = await axios({
+							method: 'get',
+							url: `https://api.twitch.tv/helix/streams?user_id=${data.broadcaster_user_id}&type=live`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
+							}
 						});
 
-						followChannel.streamOnline.onTrigger(async (data) => {
-							let currentlyLive = await axios({
-								method: 'get',
-								url: `https://api.twitch.tv/helix/streams?user_id=${data.broadcaster_user_id}&type=live`,
-								headers: {
-									'Client-ID': twitchID,
-									'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-								}
-							});
+						client.say(
+							`#${currentlyLive.data.data[0].user_login}`,
+							`! @${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
+						);
+					});
 
-							client.say(
-								`#${currentlyLive.data.data[0].user_login}`,
-								`! @${currentlyLive.data.data[0].user_name} is LIVE! Streaming ${currentlyLive.data.data[0].game_name}`
-							);
-						});
-
-						followChannel.streamOnline.onError((e) => {
-							console.error('TElistener error', e.getResponse());
-							fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
-						});
+					followChannel.streamOnline.onError((e) => {
+						console.error('TElistener error', e.getResponse());
+						fs.appendFile('error.txt', `\n${new Date().toUTCString()} TElistener error: \n ${e.getResponse()}`, () => {});
 					});
 
 					acceptedChannels.push(payload.username);
@@ -423,72 +399,51 @@ const run = async () => {
 			// Ignore own messages.
 			if (self) return;
 
-			if (message.toLocaleLowerCase() == 'good bot') {
-				return client.say(channel, `Thanks :3`);
-			}
-			if (message.toLocaleLowerCase() == 'bad bot') {
-				return client.say(channel, `D:`);
-			}
+			// fun easter egg commands
+			if (message.toLocaleLowerCase() == 'good bot') return client.say(channel, `Thanks :3`);
+			if (message.toLocaleLowerCase() == 'bad bot') return client.say(channel, `D:`);
 
-			let highestScore = 0;
-
-			// Detect bot spam
-			for (let i = 0; i < lines.length; i++) {
-				if (tags['first-msg'] && message.match(bestViewerRegex)) {
-					highestScore = 1;
-					break;
+			// check for banned phrases if not vip or mod
+			if (!(tags.badges && tags.badges.vip == '1') && !tags.mod) {
+				let highestScore = 0;
+				// Detect bot spam
+				for (let i = 0; i < lines.length; i++) {
+					if (tags['first-msg'] && message.match(bestViewerRegex)) {
+						highestScore = 1;
+						break;
+					}
+					let score = likenessScore(message, lines[i]);
+					if (score > highestScore) highestScore = score;
+					if (highestScore > 0.48) break;
 				}
-				let score = likenessScore(message, lines[i]);
-				if (score > highestScore) highestScore = score;
-				if (highestScore > 0.55) break;
-			}
 
-			if (highestScore >= 0.55) {
-				// streamer id
-				const streamerId = (
-					await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/users?login=${channel.substring(1)}`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
-					})
-				).data.data[0].id;
+				if (highestScore >= 0.48) {
+					// streamer id and banned user id
+					const streamerId = getTwitchUserId(channel.substring(1));
+					const userId = getTwitchUserId(tags.username);
 
-				// banned user id
-				const userId = (
-					await axios({
-						method: 'get',
-						url: `https://api.twitch.tv/helix/users?login=${tags.username}`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`
-						}
-					})
-				).data.data[0].id;
-
-				if (tags['first-msg'] && highestScore >= 0.55) {
-					await axios({
-						method: 'post',
-						url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,
-						headers: {
-							'Client-ID': twitchID,
-							'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`,
-							'Content-Type': 'application/json'
-						},
-						data: {
+					if (tags['first-msg'] && highestScore >= 0.48) {
+						await axios({
+							method: 'post',
+							url: `https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${streamerId}&moderator_id=1031891799`,
+							headers: {
+								'Client-ID': twitchID,
+								'Authorization': `Bearer ${await authProvider.getUserAccessToken()}`,
+								'Content-Type': 'application/json'
+							},
 							data: {
-								user_id: userId,
-								reason: `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`
+								data: {
+									user_id: userId,
+									reason: `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`
+								}
 							}
-						}
-					}).catch((error) => {
-						console.error('ban error:', error);
-						fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
-					});
-				} else if (highestScore >= 0.6) {
-					client.timeout(channel, tags.username, 5, `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`);
+						}).catch((error) => {
+							console.error('ban error:', error);
+							fs.appendFile('error.txt', `\n${new Date().toUTCString()} ban error: \n ${error}`, () => {});
+						});
+					} else if (highestScore >= 0.6) {
+						client.timeout(channel, tags.username, 5, `Bot spam detected. Confidence ${(highestScore * 100).toFixed(2)}%.`);
+					}
 				}
 			}
 

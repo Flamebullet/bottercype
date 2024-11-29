@@ -564,6 +564,10 @@ const run = async () => {
 			}
 		});
 
+		client.on('disconnected', (err) => {
+			console.log('client disconnected');
+		});
+
 		client.on('error', (err) => {
 			console.error('client error:', err);
 			fs.appendFile('error.txt', `\n${new Date().toUTCString()} client error: \n ${err}`, () => {});

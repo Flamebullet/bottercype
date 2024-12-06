@@ -7,6 +7,20 @@ const { EventSub } = require('@twapi/eventsub');
 const { Credentials, AuthProvider } = require('@twapi/auth');
 const axios = require('axios');
 const readline = require('readline');
+const WebSocket = require('ws');
+
+// Create a WebSocket server on port 8080
+const port = 7872;
+const wss = new WebSocket.Server({ port: port });
+
+wss.on('connection', (ws) => {
+	// Handle messages from the client
+	ws.on('message', (message) => {
+		if (message == '!kill') {
+			process.exit(1);
+		}
+	});
+});
 
 const { username, password, twitchtoken, twitchrefresh, twitchID, twitchSecret, databaseUrl } = require('./cred.js');
 const { channel } = require('diagnostics_channel');

@@ -21,12 +21,8 @@ module.exports = {
 		if (isenabled.length == 0 || isenabled[0].enable == false) return;
 
 		// check for broadcaster/mod permission
-		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) {
-			return client.say(channel, `@${tags.username}, Only channel broadcaster/mod has the permission to shoutout.`);
-		}
-		if (message.split(' ').length < 2) {
-			return;
-		}
+		if (!(tags.badges && tags.badges.broadcaster == '1') && !tags.mod) return;
+		if (message.split(' ').length < 2) return;
 
 		// action for add remove and shouting out
 		if (message.split(' ')[1].toLowerCase() == 'add') {
